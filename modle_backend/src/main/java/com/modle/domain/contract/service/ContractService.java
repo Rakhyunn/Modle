@@ -2,13 +2,17 @@ package com.modle.domain.contract.service;
 
 import com.modle.domain.contract.dto.request.ContractCreateRequest;
 import com.modle.domain.contract.dto.response.ContractResponse;
+import com.modle.domain.contract.dto.response.ContractTemplateResponse;
 import com.modle.domain.contract.entity.Contract;
 import com.modle.domain.contract.repository.ContractRepository;
+import com.modle.domain.contract.repository.ContractTemplateRepository;
 import com.modle.global.exception.CustomException;
 import com.modle.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ContractService {
 
     private final ContractRepository contractRepository;
+    private final ContractTemplateRepository contractTemplateRepository;
 
     @Transactional
     public ContractResponse createContract(ContractCreateRequest request) {
@@ -51,5 +56,11 @@ public class ContractService {
         if (!request.shootEndAt().isAfter(request.shootStartAt())) {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_SHOOT_TIME);
         }
+    }
+
+    public List<ContractTemplateResponse> getTemplates() {
+        return contractTemplateRepository.findAll().stream()
+                .map(ContractTemplateResponse::from)
+                .toList();
     }
 }
