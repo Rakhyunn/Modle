@@ -1,5 +1,8 @@
 package com.modle.domain.contract.entity;
 
+import com.modle.domain.contract.entity.type.ContractStatus;
+import com.modle.domain.contract.entity.type.ContractType;
+import com.modle.domain.contract.entity.type.PayType;
 import com.modle.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
