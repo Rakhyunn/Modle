@@ -5,7 +5,9 @@ import com.modle.domain.contract.entity.type.ContractType;
 import com.modle.domain.contract.entity.type.PayType;
 import com.modle.global.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,8 +16,6 @@ import java.time.LocalDateTime;
 @Getter
 @Table(name = "contracts")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
 public class Contract extends BaseEntity {
 
     // TODO: Application 엔티티 확정 후 Long applicationId를 @OneToOne 연관관계로 변경
@@ -56,15 +56,12 @@ public class Contract extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    @Builder.Default
     private ContractStatus status = ContractStatus.DRAFT;
 
     @Column(nullable = false)
-    @Builder.Default
     private Boolean clientAgreed = false;
 
     @Column(nullable = false)
-    @Builder.Default
     private Boolean modelAgreed = false;
 
     private LocalDateTime clientAgreedAt;
@@ -82,4 +79,33 @@ public class Contract extends BaseEntity {
     private LocalDateTime notifiedAt;
 
     private LocalDateTime confirmedAt;
+
+    public static Contract createDraft(
+            Long applicationId,
+            ContractType contractType,
+            LocalDateTime shootStartAt,
+            LocalDateTime shootEndAt,
+            String location,
+            BigDecimal payment,
+            PayType payType,
+            String usageScope,
+            String memo,
+            String pdfUrl
+    ) {
+        Contract contract = new Contract();
+        contract.applicationId = applicationId;
+        contract.contractType = contractType;
+        contract.shootStartAt = shootStartAt;
+        contract.shootEndAt = shootEndAt;
+        contract.location = location;
+        contract.payment = payment;
+        contract.payType = payType;
+        contract.usageScope = usageScope;
+        contract.memo = memo;
+        contract.pdfUrl = pdfUrl;
+        contract.status = ContractStatus.DRAFT;
+        contract.clientAgreed = false;
+        contract.modelAgreed = false;
+        return contract;
+    }
 }

@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -22,9 +21,10 @@ public class ContractTemplate extends BaseEntity {
     @Column(nullable = false)
     private String content;
 
-    @Builder
-    private ContractTemplate(String title, String content) {
-        this.title = title;
-        this.content = content;
-    }
+        public static ContractTemplate create(String title, String content) {
+            ContractTemplate template = new ContractTemplate();
+            template.title = title;
+            template.content = content;
+            return template;
+        }
 }

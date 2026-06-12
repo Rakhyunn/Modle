@@ -27,18 +27,18 @@ public class ContractService {
         validateDuplicateContract(request.applicationId());
         validateShootTime(request);
 
-        Contract contract = Contract.builder()
-                .applicationId(request.applicationId())
-                .contractType(request.contractType())
-                .shootStartAt(request.shootStartAt())
-                .shootEndAt(request.shootEndAt())
-                .location(request.location())
-                .payment(request.payment())
-                .payType(request.payType())
-                .usageScope(request.usageScope())
-                .memo(request.memo())
-                .pdfUrl(request.pdfUrl())
-                .build();
+        Contract contract = Contract.createDraft(
+                request.applicationId(),
+                request.contractType(),
+                request.shootStartAt(),
+                request.shootEndAt(),
+                request.location(),
+                request.payment(),
+                request.payType(),
+                request.usageScope(),
+                request.memo(),
+                request.pdfUrl()
+        );
 
         Contract savedContract = contractRepository.save(contract);
 
