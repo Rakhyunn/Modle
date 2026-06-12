@@ -1,5 +1,7 @@
 package com.modle.global.init;
 
+import com.modle.domain.contract.entity.ContractTemplate;
+import com.modle.domain.contract.repository.ContractTemplateRepository;
 import com.modle.domain.user.entity.Client;
 import com.modle.domain.user.entity.Model;
 import com.modle.domain.user.entity.User;
@@ -29,6 +31,7 @@ public class InitData {
     private final ModelRepository modelRepository;
     private final ClientRepository clientRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final ContractTemplateRepository contractTemplateRepository;
 
     @Bean
     public ApplicationRunner initDataApplicationRunner() {
@@ -36,6 +39,7 @@ public class InitData {
             self.work1(); // 관리자
             self.work2(); // 테스트 모델
             self.work3(); // 테스트 의뢰인
+            self.work4(); // 계약서 템플릿
         };
     }
 
@@ -93,4 +97,25 @@ public class InitData {
         );
         clientRepository.save(client);
     }
+
+    @Transactional
+    public void work4() {
+        if (contractTemplateRepository.count() > 0) return;
+
+        ContractTemplate template = ContractTemplate.create(
+                "기본 촬영 계약서",
+                """
+                촬영 시작: {{shootStartAt}}
+                촬영 종료: {{shootEndAt}}
+                촬영 장소: {{location}}
+                보수 금액: {{payment}}
+                보수 방식: {{payType}}
+                사용 범위: {{usageScope}}
+                기타 메모: {{memo}}
+                """
+        );
+
+        contractTemplateRepository.save(template);
+    }
+
 }

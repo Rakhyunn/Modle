@@ -5,12 +5,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "contract_template")
 public class ContractTemplate extends BaseEntity {
 
@@ -21,10 +22,10 @@ public class ContractTemplate extends BaseEntity {
     @Column(nullable = false)
     private String content;
 
-        public static ContractTemplate create(String title, String content) {
-            ContractTemplate template = new ContractTemplate();
-            template.title = title;
-            template.content = content;
-            return template;
-        }
+    public static ContractTemplate create(String title, String content) {
+        ContractTemplate template = new ContractTemplate();
+        template.title = title;
+        template.content = content;
+        return template;
+    }
 }
