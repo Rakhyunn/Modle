@@ -57,15 +57,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 메서드 레벨 권한 부족 (@PreAuthorize 실패)
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handle(AccessDeniedException e) {
-        ErrorCode errorCode = ErrorCode.JOB_POSTING_FORBIDDEN;
-        return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(ApiResponse.fail(errorCode.getResultCode(), errorCode.getMessage()));
-    }
-
     // 그 외 예외
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handle(Exception e) {
