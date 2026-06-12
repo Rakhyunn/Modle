@@ -3,14 +3,14 @@ package com.modle.global.exception;
 import com.modle.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.NoSuchElementException;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.*;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -61,6 +61,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(
                 ApiResponse.fail("500-1", "서버 오류가 발생했습니다."),
                 org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
+    // 인증은 됐지만 해당 리소스에 접근할 권한이 없는 경우 (예: 모델이 의뢰인 전용 API 호출)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handle(AccessDeniedException e) {
+        return new ResponseEntity<>(
+                ApiResponse.fail("403-5", "접근 권한이 없습니다."),
+                FORBIDDEN
         );
     }
 }
