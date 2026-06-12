@@ -4,6 +4,7 @@ import com.modle.domain.contract.dto.request.ContractCreateRequest;
 import com.modle.domain.contract.dto.response.ContractResponse;
 import com.modle.domain.contract.dto.response.ContractTemplateResponse;
 import com.modle.domain.contract.entity.Contract;
+import com.modle.domain.contract.entity.type.ContractType;
 import com.modle.domain.contract.repository.ContractRepository;
 import com.modle.domain.contract.repository.ContractTemplateRepository;
 import com.modle.global.exception.CustomException;
@@ -25,7 +26,7 @@ public class ContractService {
     @Transactional
     public ContractResponse createContract(ContractCreateRequest request) {
         validateDuplicateContract(request.applicationId());
-        validateShootTime(request);
+        validateCreateRequest(request);
 
         Contract contract = Contract.createDraft(
                 request.applicationId(),
@@ -52,9 +53,26 @@ public class ContractService {
         }
     }
 
+    private void validateCreateRequest(ContractCreateRequest request) {
+        validateShootTime(request);
+        validateContractType(request);
+    }
+
     private void validateShootTime(ContractCreateRequest request) {
         if (!request.shootEndAt().isAfter(request.shootStartAt())) {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_SHOOT_TIME);
+        }
+    }
+
+    private void validateContractType(ContractCreateRequest request) {
+        if(request.contractType() == ContractType.FILE) {
+            validateFileContract(request);
+        }
+    }
+
+    private void validateFileContract(ContractCreateRequest request) {
+        if(request.pdfUrl() == null || request.pdfUrl().isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_FILE_CONTRACT);
         }
     }
 
