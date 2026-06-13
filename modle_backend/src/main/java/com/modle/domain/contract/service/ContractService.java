@@ -10,6 +10,7 @@ import com.modle.domain.contract.repository.ContractTemplateRepository;
 import com.modle.global.exception.CustomException;
 import com.modle.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,8 +24,10 @@ public class ContractService {
     private final ContractRepository contractRepository;
     private final ContractTemplateRepository contractTemplateRepository;
 
+    // TODO: Application 도메인 연동 후
+    // applicationId 존재 검증 및 현재 로그인한 CLIENT의 공고인지 소유권 검증 추가
     @Transactional
-    public ContractResponse createContract(ContractCreateRequest request) {
+    public ContractResponse createContract(Long clientUserId, ContractCreateRequest request) {
         validateDuplicateContract(request.applicationId());
         validateCreateRequest(request);
 
@@ -40,10 +43,13 @@ public class ContractService {
                 request.memo(),
                 request.pdfUrl()
         );
-
-        Contract savedContract = contractRepository.save(contract);
-
-        return ContractResponse.from(savedContract);
+        try {
+            Contract savedContract = contractRepository.save(contract);
+            return ContractResponse.from(savedContract);
+        }catch (DataIntegrityViolationException e) {
+            // applicationId의 unique 제약 조건 위반 시 예외 처리
+            throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
+        }
 
     }
 

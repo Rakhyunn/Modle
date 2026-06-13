@@ -4,6 +4,7 @@ import com.modle.domain.contract.dto.request.ContractCreateRequest;
 import com.modle.domain.contract.dto.response.ContractResponse;
 import com.modle.domain.contract.dto.response.ContractTemplateResponse;
 import com.modle.domain.contract.service.ContractService;
+import com.modle.global.auth.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,9 +28,10 @@ public class ContractController {
     @PostMapping
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<ContractResponse> createContract(
+            @AuthenticationPrincipal SecurityUser securityUser,
             @Valid @RequestBody ContractCreateRequest request
-    ) {
-        ContractResponse response = contractService.createContract(request);
+            ) {
+        ContractResponse response = contractService.createContract(securityUser.getId(),request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
     }

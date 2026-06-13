@@ -18,7 +18,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Contract extends BaseEntity {
 
-    // TODO: Application 엔티티 확정 후 Long applicationId를 @OneToOne 연관관계로 변경
+    // TODO: 매칭(Application) 도메인 구현 완료 후
+    // applicationId를 @OneToOne 연관관계로 전환하고,
+    // 계약 생성 시 application 존재 여부 및 공고 작성자 소유권 검증을 추가한다.
     @Column(nullable = false, unique = true)
     private Long applicationId;
 
