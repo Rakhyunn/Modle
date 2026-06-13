@@ -40,6 +40,7 @@ export default function NewContractPage() {
     "idle",
   );
   const [message, setMessage] = useState("");
+  const isFileContract = form.contractType === "FILE";
 
   const preview = useMemo(
     () => ({
@@ -65,8 +66,14 @@ export default function NewContractPage() {
     setStatus("saving");
     setMessage("");
 
+    if (isFileContract && !form.pdfUrl.trim()) {
+      setStatus("error");
+      setMessage("파일 첨부 방식 계약은 PDF를 포함해야 합니다.");
+      return;
+    }
+
     try {
-      const { response } = await client.POST("/api/v1/contracts", {
+      const { data, response } = await client.POST("/api/v1/contracts", {
         body: {
           applicationId: Number(form.applicationId),
           contractType: form.contractType,
@@ -82,7 +89,12 @@ export default function NewContractPage() {
       });
 
       if (!response.ok) {
-        throw new Error("계약서 저장에 실패했습니다.");
+        const errorMessage =
+          data && typeof data === "object" && "msg" in data
+            ? String(data.msg)
+            : "계약서 저장에 실패했습니다.";
+
+        throw new Error(errorMessage);
       }
 
       setStatus("success");
@@ -243,10 +255,18 @@ export default function NewContractPage() {
                 />
               </Field>
 
-              <Field label="PDF URL" className="md:col-span-2">
+              <Field
+                label="PDF URL"
+                required={isFileContract}
+                className="md:col-span-2"
+              >
                 <input
                   className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
-                  placeholder="파일 업로드 연동 전 임시 URL"
+                  placeholder={
+                    isFileContract
+                      ? "FILE 계약은 PDF를 포함해야 합니다."
+                      : "파일 업로드 연동 전 임시 URL"
+                  }
                   value={form.pdfUrl}
                   onChange={(event) =>
                     updateField("pdfUrl", event.target.value)
