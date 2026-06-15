@@ -47,7 +47,7 @@ public class ContractService {
         try {
             Contract savedContract = contractRepository.save(contract);
             return ContractResponse.from(savedContract);
-        }catch (DataIntegrityViolationException e) {
+        } catch (DataIntegrityViolationException e) {
             // applicationId의 unique 제약 조건 위반 시 예외 처리
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
         }
@@ -108,13 +108,13 @@ public class ContractService {
     }
 
     private void validateContractType(ContractCreateRequest request) {
-        if(request.contractType() == ContractType.FILE) {
+        if (request.contractType() == ContractType.FILE) {
             validateFileContract(request);
         }
     }
 
     private void validateFileContract(ContractCreateRequest request) {
-        if(request.pdfUrl() == null || request.pdfUrl().isBlank()) {
+        if (request.pdfUrl() == null || request.pdfUrl().isBlank()) {
             throw new CustomException(ErrorCode.INVALID_FILE_CONTRACT);
         }
     }

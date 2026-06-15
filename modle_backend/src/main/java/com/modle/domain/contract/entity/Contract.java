@@ -110,4 +110,9 @@ public class Contract extends BaseEntity {
         contract.modelAgreed = false;
         return contract;
     }
+
+    public void updatePdfUrl(String pdfUrl) {
+        this.pdfUrl = pdfUrl;
+        this.status = ContractStatus.DRAFT;
+    }
 }
