@@ -67,8 +67,12 @@ public class ContractService {
     }
 
     private void validatePayType(ContractCreateRequest request) {
-        if (request.payType() == null || request.payment() == null) {
+        if (request.payType() == null) {
             return;
+        }
+
+        if (request.payment() == null) {
+            throw new CustomException(ErrorCode.INVALID_CONTRACT_PAYMENT);
         }
 
         switch (request.payType()) {
