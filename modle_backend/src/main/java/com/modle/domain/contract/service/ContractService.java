@@ -14,6 +14,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -62,7 +63,39 @@ public class ContractService {
     private void validateCreateRequest(ContractCreateRequest request) {
         validateShootTime(request);
         validateContractType(request);
+        validatePayType(request);
     }
+
+    private void validatePayType(ContractCreateRequest request) {
+        if (request.payType() == null || request.payment() == null) {
+            return;
+        }
+
+        switch (request.payType()) {
+            case CASH -> validateCashPayment(request);
+            case SERVICE -> validateServicePayment(request);
+            case FREE -> validateFreePayment(request);
+        }
+    }
+
+    private void validateCashPayment(ContractCreateRequest request) {
+        if (request.payment().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new CustomException(ErrorCode.INVALID_CONTRACT_PAYMENT);
+        }
+    }
+
+    private void validateServicePayment(ContractCreateRequest request) {
+        if (request.payment().compareTo(BigDecimal.ZERO) < 0) {
+            throw new CustomException(ErrorCode.INVALID_CONTRACT_PAYMENT);
+        }
+    }
+
+    private void validateFreePayment(ContractCreateRequest request) {
+        if (request.payment().compareTo(BigDecimal.ZERO) != 0) {
+            throw new CustomException(ErrorCode.INVALID_CONTRACT_PAYMENT);
+        }
+    }
+
 
     private void validateShootTime(ContractCreateRequest request) {
         if (!request.shootEndAt().isAfter(request.shootStartAt())) {

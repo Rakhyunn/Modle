@@ -25,17 +25,15 @@ public class ContractController {
     private final ContractService contractService;
 
     @Operation(summary = "계약서 임시 저장", description = "계약 조건을 입력받아 DRAFT 상태의 계약서를 생성합니다.")
+    @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<ContractResponse> createContract(
+    public ContractResponse createContract(
             @AuthenticationPrincipal SecurityUser securityUser,
             @Valid @RequestBody ContractCreateRequest request
-            ) {
-        ContractResponse response = contractService.createContract(securityUser.getId(),request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
+    ) {
+        return contractService.createContract(securityUser.getId(), request);
     }
-
 
     @GetMapping("/templates")
     @PreAuthorize("hasRole('CLIENT')")
