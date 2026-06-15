@@ -252,6 +252,22 @@ export interface paths {
         patch: operations["update"];
         trace?: never;
     };
+    "/api/v1/jobs/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateStatus"];
+        trace?: never;
+    };
     "/api/v1/admin/clients/{userId}/reject": {
         parameters: {
             query?: never;
@@ -685,6 +701,10 @@ export interface components {
             /** Format: date-time */
             shootDate?: string;
         };
+        JobPostingStatusUpdateRequest: {
+            /** @enum {string} */
+            status: "RECRUITING" | "SHOOTING" | "COMPLETED" | "CANCELLED" | "ON_HOLD" | "CLOSED";
+        };
         RejectRequest: {
             reason: string;
         };
@@ -989,7 +1009,9 @@ export interface operations {
             query: {
                 region?: string;
                 category?: string;
-                pageable: components["schemas"]["Pageable"];
+                page?: number;
+                size?: number;
+                sort?: string[];
             };
             header?: never;
             path?: never;
@@ -1325,6 +1347,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["JobPostingUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseJobPostingResponse"];
+                };
+            };
+        };
+    };
+    updateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobPostingStatusUpdateRequest"];
             };
         };
         responses: {
