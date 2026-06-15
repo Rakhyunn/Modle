@@ -44,13 +44,14 @@ public class ContractPdfGenerator {
             document.save(outputStream);
             return outputStream.toByteArray();
         } catch (IOException e) {
+            e.printStackTrace();
             throw new CustomException(ErrorCode.CONTRACT_PDF_GENERATION_FAILED);
         }
 
     }
 
     private PDType0Font loadFont(PDDocument document) throws IOException {
-        try (InputStream inputStream = new ClassPathResource("fonts/Pretendard-Regular.otf").getInputStream()) {
+        try (InputStream inputStream = new ClassPathResource("fonts/Pretendard-Regular.ttf").getInputStream()) {
             return PDType0Font.load(document, inputStream);
         }
     }
