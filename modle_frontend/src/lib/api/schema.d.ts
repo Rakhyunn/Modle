@@ -302,6 +302,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contracts/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTemplates_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/clients/pending": {
         parameters: {
             query?: never;
@@ -352,20 +368,20 @@ export interface components {
             introduction?: string;
             profileImageUrl?: string;
         };
-        RsDataVoid: {
-            resultCode: string;
-            msg: string;
-            data: unknown;
+        ApiResponseVoid: {
+            resultCode?: string;
+            msg?: string;
+            data?: unknown;
+        };
+        ApiResponseListPortfolioDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["PortfolioDto"][];
         };
         PortfolioDto: {
             /** Format: int64 */
             id?: number;
             imgUrl?: string;
-        };
-        RsDataListPortfolioDto: {
-            resultCode: string;
-            msg: string;
-            data: components["schemas"]["PortfolioDto"][];
         };
         ModelCreateReqBody: {
             name: string;
@@ -380,6 +396,11 @@ export interface components {
             tags?: string[];
             introduction?: string;
             profileImageUrl?: string;
+        };
+        ApiResponseModelDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["ModelDto"];
         };
         ModelDto: {
             /** Format: int64 */
@@ -405,11 +426,6 @@ export interface components {
             /** Format: int32 */
             reviewCount: number;
             portfolios?: components["schemas"]["PortfolioDto"][];
-        };
-        RsDataModelDto: {
-            resultCode: string;
-            msg: string;
-            data: components["schemas"]["ModelDto"];
         };
         JobPostingCreateRequest: {
             title: string;
@@ -495,7 +511,7 @@ export interface components {
             location: string;
             payment: number;
             /** @enum {string} */
-            payType: "CASH" | "SERVICE";
+            payType: "CASH" | "SERVICE" | "FREE";
             usageScope: string;
             memo?: string;
             pdfUrl?: string;
@@ -514,7 +530,7 @@ export interface components {
             location?: string;
             payment?: number;
             /** @enum {string} */
-            payType?: "CASH" | "SERVICE";
+            payType?: "CASH" | "SERVICE" | "FREE";
             usageScope?: string;
             memo?: string;
             pdfUrl?: string;
@@ -534,11 +550,6 @@ export interface components {
             /** Format: int32 */
             age?: number;
             gender: boolean;
-        };
-        ApiResponseVoid: {
-            resultCode?: string;
-            msg?: string;
-            data?: unknown;
         };
         ClientRegisterRequest: {
             email: string;
@@ -610,6 +621,11 @@ export interface components {
         RejectRequest: {
             reason: string;
         };
+        ApiResponseListModelDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["ModelDto"][];
+        };
         Pageable: {
             /** Format: int32 */
             page?: number;
@@ -643,33 +659,33 @@ export interface components {
             createdDate?: string;
         };
         PageJobPostingListResponse: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["JobPostingListResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             numberOfElements?: number;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PageableObject: {
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"];
+            unpaged?: boolean;
             paged?: boolean;
             /** Format: int32 */
-            pageSize?: number;
-            /** Format: int32 */
             pageNumber?: number;
-            unpaged?: boolean;
+            /** Format: int32 */
+            pageSize?: number;
         };
         SortObject: {
             empty?: boolean;
@@ -690,6 +706,12 @@ export interface components {
             /** Format: int64 */
             id?: number;
             category?: string;
+            title?: string;
+            content?: string;
+        };
+        ContractTemplateResponse: {
+            /** Format: int64 */
+            id?: number;
             title?: string;
             content?: string;
         };
@@ -716,437 +738,6 @@ export interface components {
     requestBodies: never;
     headers: never;
     pathItems: never;
-  schemas: {
-    JobPostingCreateRequest: {
-      title: string;
-      content: string;
-      /** @enum {string} */
-      category:
-        | "HAIR"
-        | "MAKEUP"
-        | "CLOTHING"
-        | "FITTING"
-        | "HAND"
-        | "FOOD"
-        | "PRODUCT"
-        | "ETC";
-      /** @enum {string} */
-      region:
-        | "SEOUL"
-        | "BUSAN"
-        | "DAEGU"
-        | "INCHEON"
-        | "GWANGJU"
-        | "DAEJEON"
-        | "ULSAN"
-        | "SEJONG"
-        | "GYEONGGI"
-        | "GANGWON"
-        | "CHUNGBUK"
-        | "CHUNGNAM"
-        | "JEONBUK"
-        | "JEONNAM"
-        | "GYEONGBUK"
-        | "GYEONGNAM"
-        | "JEJU";
-      /** @enum {string} */
-      requiredSex?: "M" | "F" | "ANY";
-      /** Format: int32 */
-      ageMin?: number;
-      /** Format: int32 */
-      ageMax?: number;
-      /** Format: int32 */
-      heightMin?: number;
-      /** Format: int32 */
-      heightMax?: number;
-      /** Format: int32 */
-      weightMin?: number;
-      /** Format: int32 */
-      weightMax?: number;
-      /** Format: int32 */
-      minCareerMonths?: number;
-      payment?: number;
-      /** @enum {string} */
-      payType?: "CASH" | "SERVICE" | "FREE";
-      /** Format: date-time */ z;
-      shootDate?: string;
-    };
-    ApiResponseJobPostingResponse: {
-      resultCode?: string;
-      msg?: string;
-      data?: components["schemas"]["JobPostingResponse"];
-    };
-    JobPostingResponse: {
-      /** Format: int64 */
-      id?: number;
-      /** Format: int64 */
-      clientId?: number;
-      title?: string;
-      content?: string;
-      /** @enum {string} */
-      category?:
-        | "HAIR"
-        | "MAKEUP"
-        | "CLOTHING"
-        | "FITTING"
-        | "HAND"
-        | "FOOD"
-        | "PRODUCT"
-        | "ETC";
-      /** @enum {string} */
-      region?:
-        | "SEOUL"
-        | "BUSAN"
-        | "DAEGU"
-        | "INCHEON"
-        | "GWANGJU"
-        | "DAEJEON"
-        | "ULSAN"
-        | "SEJONG"
-        | "GYEONGGI"
-        | "GANGWON"
-        | "CHUNGBUK"
-        | "CHUNGNAM"
-        | "JEONBUK"
-        | "JEONNAM"
-        | "GYEONGBUK"
-        | "GYEONGNAM"
-        | "JEJU";
-      /** @enum {string} */
-      status?:
-        | "RECRUITING"
-        | "SHOOTING"
-        | "COMPLETED"
-        | "CANCELLED"
-        | "ON_HOLD"
-        | "CLOSED";
-      /** @enum {string} */
-      requiredSex?: "M" | "F" | "ANY";
-      /** Format: int32 */
-      ageMin?: number;
-      /** Format: int32 */
-      ageMax?: number;
-      /** Format: int32 */
-      heightMin?: number;
-      /** Format: int32 */
-      heightMax?: number;
-      /** Format: int32 */
-      weightMin?: number;
-      /** Format: int32 */
-      weightMax?: number;
-      /** Format: int32 */
-      minCareerMonths?: number;
-      payment?: number;
-      /** @enum {string} */
-      payType?: "CASH" | "SERVICE" | "FREE";
-      /** Format: date-time */
-      shootDate?: string;
-      /** Format: date-time */
-      createdDate?: string;
-    };
-    /** @description 계약서 생성 요청 */
-    ContractCreateRequest: {
-      /** Format: int64 */
-      applicationId: number;
-      /** @enum {string} */
-      contractType: "TEMPLATE" | "FILE";
-      /** Format: date-time */
-      shootStartAt: string;
-      /** Format: date-time */
-      shootEndAt: string;
-      location: string;
-      payment: number;
-      /** @enum {string} */
-      payType: "CASH" | "SERVICE" | "FREE";
-      usageScope: string;
-      memo?: string;
-      pdfUrl?: string;
-    };
-    ContractResponse: {
-      /** Format: int64 */
-      id?: number;
-      /** Format: int64 */
-      applicationId?: number;
-      /** @enum {string} */
-      contractType?: "TEMPLATE" | "FILE";
-      /** Format: date-time */
-      shootStartAt?: string;
-      /** Format: date-time */
-      shootEndAt?: string;
-      location?: string;
-      payment?: number;
-      /** @enum {string} */
-      payType?: "CASH" | "SERVICE" | "FREE";
-      usageScope?: string;
-      memo?: string;
-      pdfUrl?: string;
-      signedPdfUrl?: string;
-      /** @enum {string} */
-      status?:
-        | "DRAFT"
-        | "NOTIFIED"
-        | "VIEWED"
-        | "AGREED"
-        | "REJECTED"
-        | "CONFIRMED"
-        | "CANCELLED";
-    };
-    ModelRegisterRequest: {
-      email: string;
-      password: string;
-      region: string;
-      name: string;
-      /** Format: int32 */
-      height?: number;
-      /** Format: int32 */
-      weight?: number;
-      /** Format: int32 */
-      age?: number;
-      gender: boolean;
-    };
-    ApiResponseVoid: {
-      resultCode?: string;
-      msg?: string;
-      data?: unknown;
-    };
-    ClientRegisterRequest: {
-      email: string;
-      password: string;
-      region: string;
-      companyName: string;
-      companyNumber: string;
-      /** @enum {string} */
-      clientType: "INDIVIDUAL" | "ORGANIZATION";
-    };
-    LoginRequest: {
-      email: string;
-      password: string;
-    };
-    ApiResponseLoginResponse: {
-      resultCode?: string;
-      msg?: string;
-      data?: components["schemas"]["LoginResponse"];
-    };
-    LoginResponse: {
-      item: components["schemas"]["UserDto"];
-    };
-    UserDto: {
-      /** Format: int64 */
-      id: number;
-      /** Format: date-time */
-      createDate: string;
-      /** Format: date-time */
-      modifyDate: string;
-      /** @enum {string} */
-      role: "MODEL" | "CLIENT" | "ADMIN";
-    };
-    EmailVerifyRequest: {
-      email: string;
-    };
-    EmailVerifyConfirmRequest: {
-      email: string;
-      code: string;
-    };
-    JobPostingUpdateRequest: {
-      title: string;
-      content: string;
-      /** @enum {string} */
-      category:
-        | "HAIR"
-        | "MAKEUP"
-        | "CLOTHING"
-        | "FITTING"
-        | "HAND"
-        | "FOOD"
-        | "PRODUCT"
-        | "ETC";
-      /** @enum {string} */
-      region:
-        | "SEOUL"
-        | "BUSAN"
-        | "DAEGU"
-        | "INCHEON"
-        | "GWANGJU"
-        | "DAEJEON"
-        | "ULSAN"
-        | "SEJONG"
-        | "GYEONGGI"
-        | "GANGWON"
-        | "CHUNGBUK"
-        | "CHUNGNAM"
-        | "JEONBUK"
-        | "JEONNAM"
-        | "GYEONGBUK"
-        | "GYEONGNAM"
-        | "JEJU";
-      /** @enum {string} */
-      requiredSex?: "M" | "F" | "ANY";
-      /** Format: int32 */
-      ageMin?: number;
-      /** Format: int32 */
-      ageMax?: number;
-      /** Format: int32 */
-      heightMin?: number;
-      /** Format: int32 */
-      heightMax?: number;
-      /** Format: int32 */
-      weightMin?: number;
-      /** Format: int32 */
-      weightMax?: number;
-      /** Format: int32 */
-      minCareerMonths?: number;
-      payment?: number;
-      /** @enum {string} */
-      payType?: "CASH" | "SERVICE" | "FREE";
-      /** Format: date-time */
-      shootDate?: string;
-    };
-    RejectRequest: {
-      reason: string;
-    };
-    Pageable: {
-      /** Format: int32 */
-      page?: number;
-      /** Format: int32 */
-      size?: number;
-      sort?: string[];
-    };
-    ApiResponsePageJobPostingListResponse: {
-      resultCode?: string;
-      msg?: string;
-      data?: components["schemas"]["PageJobPostingListResponse"];
-    };
-    JobPostingListResponse: {
-      /** Format: int64 */
-      id?: number;
-      title?: string;
-      /** @enum {string} */
-      category?:
-        | "HAIR"
-        | "MAKEUP"
-        | "CLOTHING"
-        | "FITTING"
-        | "HAND"
-        | "FOOD"
-        | "PRODUCT"
-        | "ETC";
-      /** @enum {string} */
-      region?:
-        | "SEOUL"
-        | "BUSAN"
-        | "DAEGU"
-        | "INCHEON"
-        | "GWANGJU"
-        | "DAEJEON"
-        | "ULSAN"
-        | "SEJONG"
-        | "GYEONGGI"
-        | "GANGWON"
-        | "CHUNGBUK"
-        | "CHUNGNAM"
-        | "JEONBUK"
-        | "JEONNAM"
-        | "GYEONGBUK"
-        | "GYEONGNAM"
-        | "JEJU";
-      /** @enum {string} */
-      status?:
-        | "RECRUITING"
-        | "SHOOTING"
-        | "COMPLETED"
-        | "CANCELLED"
-        | "ON_HOLD"
-        | "CLOSED";
-      /** @enum {string} */
-      requiredSex?: "M" | "F" | "ANY";
-      payment?: number;
-      /** @enum {string} */
-      payType?: "CASH" | "SERVICE" | "FREE";
-      /** Format: date-time */
-      shootDate?: string;
-      /** Format: date-time */
-      createdDate?: string;
-    };
-    PageJobPostingListResponse: {
-      /** Format: int64 */
-      totalElements?: number;
-      /** Format: int32 */
-      totalPages?: number;
-      /** Format: int32 */
-      numberOfElements?: number;
-      first?: boolean;
-      last?: boolean;
-      pageable?: components["schemas"]["PageableObject"];
-      /** Format: int32 */
-      size?: number;
-      content?: components["schemas"]["JobPostingListResponse"][];
-      /** Format: int32 */
-      number?: number;
-      sort?: components["schemas"]["SortObject"];
-      empty?: boolean;
-    };
-    PageableObject: {
-      paged?: boolean;
-      /** Format: int32 */
-      pageNumber?: number;
-      /** Format: int32 */
-      pageSize?: number;
-      unpaged?: boolean;
-      /** Format: int64 */
-      offset?: number;
-      sort?: components["schemas"]["SortObject"];
-    };
-    SortObject: {
-      sorted?: boolean;
-      unsorted?: boolean;
-      empty?: boolean;
-    };
-    ApiResponseObject: {
-      resultCode?: string;
-      msg?: string;
-      data?: unknown;
-    };
-    ApiResponseListJobPostingTemplateResponse: {
-      resultCode?: string;
-      msg?: string;
-      data?: components["schemas"]["JobPostingTemplateResponse"][];
-    };
-    JobPostingTemplateResponse: {
-      /** Format: int64 */
-      id?: number;
-      category?: string;
-      title?: string;
-      content?: string;
-    };
-    ContractTemplateResponse: {
-      /** Format: int64 */
-      id?: number;
-      title?: string;
-      content?: string;
-    };
-    ApiResponseListPendingClientResponse: {
-      resultCode?: string;
-      msg?: string;
-      data?: components["schemas"]["PendingClientResponse"][];
-    };
-    PendingClientResponse: {
-      /** Format: int64 */
-      userId?: number;
-      email?: string;
-      companyName?: string;
-      companyNumber?: string;
-      /** @enum {string} */
-      clientType?: "INDIVIDUAL" | "ORGANIZATION";
-      region?: string;
-      /** Format: date-time */
-      createdDate?: string;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
@@ -1165,32 +756,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataModelDto"];
+                    "*/*": components["schemas"]["ApiResponseModelDto"];
                 };
             };
         };
-  getJobPostings: {
-    parameters: {
-      query: {
-        region?: string;
-        category?: string;
-        pageable: components["schemas"]["Pageable"];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponsePageJobPostingListResponse"];
-        };
-      };
     };
     modifyMyItem: {
         parameters: {
@@ -1211,7 +780,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataVoid"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -1237,7 +806,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataListPortfolioDto"];
+                    "*/*": components["schemas"]["ApiResponseListPortfolioDto"];
                 };
             };
         };
@@ -1257,7 +826,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ModelDto"][];
+                    "*/*": components["schemas"]["ApiResponseListModelDto"];
                 };
             };
         };
@@ -1281,7 +850,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataModelDto"];
+                    "*/*": components["schemas"]["ApiResponseModelDto"];
                 };
             };
         };
@@ -1376,8 +945,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1546,395 +1115,7 @@ export interface operations {
                 };
             };
         };
-  };
-  create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["JobPostingCreateRequest"];
-      };
-    };
-    responses: {
-      /** @description Created */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseJobPostingResponse"];
-        };
-      };
-    };
-  };
-  createContract: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ContractCreateRequest"];
-      };
-    };
-    responses: {
-      /** @description Created */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ContractResponse"];
-        };
-      };
-    };
-  };
-  registerModel: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ModelRegisterRequest"];
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  registerClient: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ClientRegisterRequest"];
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  reissue: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  logout: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  login: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LoginRequest"];
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseLoginResponse"];
-        };
-      };
-    };
-  };
-  sendVerificationCode: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EmailVerifyRequest"];
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  confirmVerificationCode: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EmailVerifyConfirmRequest"];
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  getJobPostingDetail: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseObject"];
-        };
-      };
-    };
-  };
-  delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["JobPostingUpdateRequest"];
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseJobPostingResponse"];
-        };
-      };
-    };
-  };
-  rejectClient: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RejectRequest"];
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  approveClient: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseVoid"];
-        };
-      };
-    };
-  };
-  getTemplates: {
-    parameters: {
-      query: {
-        category: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseListJobPostingTemplateResponse"];
-        };
-      };
-    };
-  };
-  getTemplates_1: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ContractTemplateResponse"][];
-        };
-      };
-    };
-  };
-  getPendingClients: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "*/*": components["schemas"]["ApiResponseListPendingClientResponse"];
-        };
-      };
-    };
-  };
     getJobPostingDetail: {
         parameters: {
             query?: never;
@@ -2070,7 +1251,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataModelDto"];
+                    "*/*": components["schemas"]["ApiResponseModelDto"];
                 };
             };
         };
@@ -2092,7 +1273,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataModelDto"];
+                    "*/*": components["schemas"]["ApiResponseModelDto"];
                 };
             };
         };
@@ -2115,6 +1296,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseListJobPostingTemplateResponse"];
+                };
+            };
+        };
+    };
+    getTemplates_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ContractTemplateResponse"][];
                 };
             };
         };
@@ -2156,7 +1357,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataVoid"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };

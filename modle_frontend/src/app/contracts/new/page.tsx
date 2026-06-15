@@ -2,11 +2,50 @@
 
 import { client } from "@/lib/api/client";
 import { getErrorMessage } from "@/lib/api/error";
-import { FormEvent, ReactNode, Suspense, useMemo, useState } from "react";
+import {
+  FormEvent,
+  ReactNode,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type ContractType = "TEMPLATE" | "FILE";
 type PayType = "CASH" | "SERVICE" | "FREE";
+type ContractTemplate = {
+  id: number;
+  title: string;
+  content: string;
+};
+
+const TEMPLATE_FALLBACK_TEXT = "연동 예정";
+const DEV_MOCK_APPLICATION_ID_START = 900001;
+const DEV_MOCK_APPLICATION_ID_STORAGE_KEY = "contracts:new:mock-application-id";
+
+const getNextDevMockApplicationId = () => {
+  if (typeof window === "undefined") {
+    return String(DEV_MOCK_APPLICATION_ID_START);
+  }
+
+  const savedValue = window.localStorage.getItem(
+    DEV_MOCK_APPLICATION_ID_STORAGE_KEY,
+  );
+  const parsedValue = Number(savedValue);
+  const nextValue =
+    Number.isInteger(parsedValue) &&
+    parsedValue >= DEV_MOCK_APPLICATION_ID_START
+      ? parsedValue + 1
+      : DEV_MOCK_APPLICATION_ID_START;
+
+  window.localStorage.setItem(
+    DEV_MOCK_APPLICATION_ID_STORAGE_KEY,
+    String(nextValue),
+  );
+
+  return String(nextValue);
+};
 
 type FormState = {
   applicationId: string;
@@ -48,17 +87,74 @@ function NewContractPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const applicationIdFromQuery = searchParams.get("applicationId") ?? "";
+  const resolvedApplicationId =
+    applicationIdFromQuery ||
+    (process.env.NODE_ENV !== "production"
+      ? getNextDevMockApplicationId()
+      : "");
+  const isUsingMockApplicationId =
+    !applicationIdFromQuery && process.env.NODE_ENV !== "production";
 
   const [form, setForm] = useState<FormState>(() => ({
     ...initialForm,
-    applicationId: applicationIdFromQuery,
+    applicationId: resolvedApplicationId,
   }));
   const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">(
     "idle",
   );
   const [message, setMessage] = useState("");
+  const [templates, setTemplates] = useState<ContractTemplate[]>([]);
+  const [templatesStatus, setTemplatesStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [templatesMessage, setTemplatesMessage] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   const isFileContract = form.contractType === "FILE";
+  const isTemplateContract = form.contractType === "TEMPLATE";
+  const selectedTemplate =
+    templates.find((template) => String(template.id) === selectedTemplateId) ??
+    null;
+
+  useEffect(() => {
+    if (!isTemplateContract || templatesStatus !== "idle") {
+      return;
+    }
+
+    const fetchTemplates = async () => {
+      setTemplatesStatus("loading");
+      setTemplatesMessage("");
+
+      const { data, error, response } = await client.GET(
+        "/api/v1/contracts/templates",
+      );
+
+      if (error || !response.ok) {
+        setTemplatesStatus("error");
+        setTemplatesMessage(
+          getErrorMessage(error, "계약서 템플릿 목록을 불러오지 못했습니다."),
+        );
+        return;
+      }
+
+      const templateList = Array.isArray(data)
+        ? data.filter(
+            (template): template is ContractTemplate =>
+              typeof template?.id === "number" &&
+              typeof template?.title === "string" &&
+              typeof template?.content === "string",
+          )
+        : [];
+      setTemplates(templateList);
+      setTemplatesStatus("success");
+
+      if (templateList.length > 0) {
+        setSelectedTemplateId(String(templateList[0].id));
+      }
+    };
+
+    void fetchTemplates();
+  }, [isTemplateContract, templatesStatus]);
 
   const preview = useMemo(
     () => ({
@@ -82,6 +178,47 @@ function NewContractPageContent() {
     [form],
   );
 
+  const renderedTemplateContent = useMemo(() => {
+    if (!selectedTemplate) {
+      return "";
+    }
+
+    const paymentText =
+      form.payType === "FREE"
+        ? "0원"
+        : form.payment
+          ? `${Number(form.payment).toLocaleString("ko-KR")}원`
+          : TEMPLATE_FALLBACK_TEXT;
+
+    const templateValues: Record<string, string> = {
+      client_company_name: TEMPLATE_FALLBACK_TEXT,
+      client_email: TEMPLATE_FALLBACK_TEXT,
+      model_name: TEMPLATE_FALLBACK_TEXT,
+      model_email: TEMPLATE_FALLBACK_TEXT,
+      shoot_start_at: preview.shootStartAt || TEMPLATE_FALLBACK_TEXT,
+      shoot_end_at: preview.shootEndAt || TEMPLATE_FALLBACK_TEXT,
+      location: form.location.trim() || TEMPLATE_FALLBACK_TEXT,
+      post_content: TEMPLATE_FALLBACK_TEXT,
+      post_category: TEMPLATE_FALLBACK_TEXT,
+      memo: form.memo.trim() || "없음",
+      payment: paymentText,
+      pay_type: getPayTypeLabel(form.payType),
+      usage_scope: form.usageScope.trim() || TEMPLATE_FALLBACK_TEXT,
+      signer_name: TEMPLATE_FALLBACK_TEXT,
+      client_agreed_at: TEMPLATE_FALLBACK_TEXT,
+      model_agreed_at: TEMPLATE_FALLBACK_TEXT,
+      client_ip: TEMPLATE_FALLBACK_TEXT,
+      model_ip: TEMPLATE_FALLBACK_TEXT,
+      user_agent: TEMPLATE_FALLBACK_TEXT,
+      pdf_hash: TEMPLATE_FALLBACK_TEXT,
+    };
+
+    return selectedTemplate.content.replaceAll(
+      /\{\{(\w+)\}\}/g,
+      (_, key: string) => templateValues[key] ?? TEMPLATE_FALLBACK_TEXT,
+    );
+  }, [form, preview, selectedTemplate]);
+
   const updateField = <K extends keyof FormState>(
     key: K,
     value: FormState[K],
@@ -95,6 +232,19 @@ function NewContractPageContent() {
       payType,
       payment: payType === "FREE" ? "0" : "",
     }));
+  };
+
+  const handleContractTypeChange = (contractType: ContractType) => {
+    setForm((current) => ({ ...current, contractType }));
+
+    if (contractType === "FILE") {
+      setSelectedTemplateId("");
+      return;
+    }
+
+    if (templates.length > 0 && !selectedTemplateId) {
+      setSelectedTemplateId(String(templates[0].id));
+    }
   };
 
   const validateForm = () => {
@@ -120,6 +270,14 @@ function NewContractPageContent() {
 
     if (!form.usageScope.trim()) {
       return "사용 범위는 필수입니다.";
+    }
+
+    if (
+      isTemplateContract &&
+      templatesStatus === "success" &&
+      !selectedTemplateId
+    ) {
+      return "계약서 템플릿을 선택해주세요.";
     }
 
     const payment = Number(form.payType === "FREE" ? "0" : form.payment);
@@ -192,7 +350,28 @@ function NewContractPageContent() {
       setStatus("success");
       setMessage("계약서가 DRAFT 상태로 저장되었습니다.");
 
-      router.push(`/contracts/${data.id}`);
+      const detailParams = new URLSearchParams({
+        source: "draft-created",
+        applicationId: form.applicationId,
+        contractType: form.contractType,
+        payType: form.payType,
+        payment: String(payment),
+        shootDate: form.shootDate,
+        shootStartTime: form.shootStartTime,
+        shootEndTime: form.shootEndTime,
+        location: form.location.trim(),
+        usageScope: form.usageScope.trim(),
+      });
+
+      if (form.memo.trim()) {
+        detailParams.set("memo", form.memo.trim());
+      }
+
+      if (form.pdfUrl.trim()) {
+        detailParams.set("pdfUrl", form.pdfUrl.trim());
+      }
+
+      router.push(`/contracts/${data.id}?${detailParams.toString()}`);
     } catch (error) {
       setStatus("error");
       setMessage(
@@ -231,13 +410,21 @@ function NewContractPageContent() {
           <section className="rounded-xl border border-hairline bg-surface p-6">
             <div className="grid gap-6 md:grid-cols-2">
               <Field label="지원 ID" required>
-                <input
-                  className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink disabled:text-mute"
-                  inputMode="numeric"
-                  value={form.applicationId}
-                  disabled
-                  readOnly
-                />
+                <div className="space-y-2">
+                  <input
+                    className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink disabled:text-mute"
+                    inputMode="numeric"
+                    value={form.applicationId}
+                    disabled
+                    readOnly
+                  />
+                  {isUsingMockApplicationId ? (
+                    <p className="text-[13px] leading-5 text-mute">
+                      개발 환경에서는 지원 ID가 없을 때 900001번대 목업 값이
+                      자동으로 증가하며 들어갑니다.
+                    </p>
+                  ) : null}
+                </div>
               </Field>
 
               <Field label="계약 유형" required>
@@ -245,16 +432,66 @@ function NewContractPageContent() {
                   className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                   value={form.contractType}
                   onChange={(event) =>
-                    updateField(
-                      "contractType",
-                      event.target.value as ContractType,
-                    )
+                    handleContractTypeChange(event.target.value as ContractType)
                   }
                 >
                   <option value="TEMPLATE">템플릿 작성</option>
                   <option value="FILE">PDF 파일 첨부</option>
                 </select>
               </Field>
+
+              {isTemplateContract ? (
+                <>
+                  <Field
+                    label="계약서 템플릿"
+                    required
+                    className="md:col-span-2"
+                  >
+                    {templatesStatus === "loading" ? (
+                      <div className="rounded-md border border-hairline bg-canvas-soft px-3 py-3 text-[14px] text-body">
+                        템플릿 목록을 불러오는 중입니다.
+                      </div>
+                    ) : templatesStatus === "error" ? (
+                      <div className="rounded-md bg-error-soft px-3 py-3 text-[14px] text-error">
+                        {templatesMessage ||
+                          "템플릿 목록을 불러오지 못했습니다."}
+                      </div>
+                    ) : templates.length === 0 ? (
+                      <div className="rounded-md border border-hairline bg-canvas-soft px-3 py-3 text-[14px] text-body">
+                        사용할 수 있는 템플릿이 없습니다.
+                      </div>
+                    ) : (
+                      <select
+                        className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
+                        value={selectedTemplateId}
+                        onChange={(event) =>
+                          setSelectedTemplateId(event.target.value)
+                        }
+                      >
+                        {templates.map((template) => (
+                          <option key={template.id} value={template.id}>
+                            {template.title}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </Field>
+
+                  {selectedTemplate ? (
+                    <div className="md:col-span-2 rounded-xl border border-hairline bg-canvas-soft p-4">
+                      <p className="text-[13px] font-semibold text-mute">
+                        선택한 템플릿
+                      </p>
+                      <h3 className="mt-2 text-[17px] font-semibold text-ink">
+                        {selectedTemplate.title}
+                      </h3>
+                      <pre className="mt-3 whitespace-pre-wrap break-words text-[14px] leading-6 text-body">
+                        {renderedTemplateContent}
+                      </pre>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
 
               <Field label="촬영일" required>
                 <input
@@ -413,6 +650,18 @@ function NewContractPageContent() {
       </div>
     </main>
   );
+}
+
+function getPayTypeLabel(payType: PayType) {
+  if (payType === "CASH") {
+    return "현금";
+  }
+
+  if (payType === "SERVICE") {
+    return "재화·서비스";
+  }
+
+  return "재능기부";
 }
 
 function NewContractPageFallback() {
