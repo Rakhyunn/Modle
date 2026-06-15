@@ -9,10 +9,10 @@ import com.modle.domain.contract.entity.Contract;
 import com.modle.domain.contract.entity.ContractTemplate;
 import com.modle.domain.contract.entity.type.ContractStatus;
 import com.modle.domain.contract.entity.type.ContractType;
-import com.modle.domain.contract.entity.type.PayType;
 import com.modle.domain.contract.pdf.ContractPdfGenerator;
 import com.modle.domain.contract.repository.ContractRepository;
 import com.modle.domain.contract.repository.ContractTemplateRepository;
+import com.modle.domain.contract.template.ContractTemplateRenderer;
 import com.modle.global.exception.CustomException;
 import com.modle.global.exception.ErrorCode;
 import com.modle.global.gcs.GcsService;
@@ -22,11 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,12 +32,10 @@ public class ContractService {
 
     private final ContractRepository contractRepository;
     private final ContractTemplateRepository contractTemplateRepository;
-    private static final DateTimeFormatter CONTRACT_DATE_TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-    private static final Pattern TEMPLATE_PATTERN = Pattern.compile("\\{\\{(\\w+)}}");
 
     private final GcsService gcsService;
     private final ContractPdfGenerator contractPdfGenerator;
+    private final ContractTemplateRenderer contractTemplateRenderer;
 
     // TODO: Application 도메인 연동 후
     // applicationId 존재 검증 및 현재 로그인한 CLIENT의 공고인지 소유권 검증 추가
@@ -88,7 +83,7 @@ public class ContractService {
     }
 
     private void validateDraftStatus(Contract contract) {
-        if(contract.getStatus() != ContractStatus.DRAFT) {
+        if (contract.getStatus() != ContractStatus.DRAFT) {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
         }
 
@@ -170,7 +165,6 @@ public class ContractService {
             throw new CustomException(ErrorCode.INVALID_FILE_CONTRACT);
         }
 
-        contract.updatePdfUrl(contract.getPdfUrl());
         return ContractPdfResponse.from(contract);
     }
 
@@ -179,7 +173,7 @@ public class ContractService {
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_TEMPLATE_NOT_FOUND));
 
         String templateContent = template.getContent();
-        String renderedContent = renderTemplate(templateContent, contract);
+        String renderedContent = contractTemplateRenderer.render(templateContent, contract);
 
         byte[] pdfBytes = contractPdfGenerator.generate(renderedContent);
 
@@ -190,52 +184,4 @@ public class ContractService {
         return ContractPdfResponse.from(contract);
     }
 
-    private String renderTemplate(String content, Contract contract) {
-        Map<String, String> values = new HashMap<>();
-
-        values.put("shoot_start_at", contract.getShootStartAt().format(CONTRACT_DATE_TIME_FORMATTER));
-        values.put("shootStartAt", contract.getShootStartAt().format(CONTRACT_DATE_TIME_FORMATTER));
-
-        values.put("shoot_end_at", contract.getShootEndAt().format(CONTRACT_DATE_TIME_FORMATTER));
-        values.put("shootEndAt", contract.getShootEndAt().format(CONTRACT_DATE_TIME_FORMATTER));
-
-        values.put("location", contract.getLocation());
-        values.put("payment", formatPayment(contract));
-
-        values.put("pay_type", getPayTypeLabel(contract.getPayType()));
-        values.put("payType", getPayTypeLabel(contract.getPayType()));
-
-        values.put("usage_scope", contract.getUsageScope());
-        values.put("usageScope", contract.getUsageScope());
-
-        values.put("memo", contract.getMemo() == null || contract.getMemo().isBlank()
-                ? "없음"
-                : contract.getMemo());
-
-        Matcher matcher = TEMPLATE_PATTERN.matcher(content);
-        StringBuffer result = new StringBuffer();
-
-        while (matcher.find()) {
-            String replacement = values.getOrDefault(matcher.group(1), "");
-            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
-        }
-
-        matcher.appendTail(result);
-        return result.toString();
-    }
-
-    private String formatPayment(Contract contract) {
-        if (contract.getPayType() == PayType.FREE) {
-            return "0원";
-        }
-        return NumberFormat.getNumberInstance(Locale.KOREA).format(contract.getPayment()) + "원";
-    }
-
-    private String getPayTypeLabel(PayType payType) {
-        return switch (payType) {
-            case CASH -> "현금";
-            case SERVICE -> "서비스";
-            case FREE -> "무료";
-        };
-    }
 }
