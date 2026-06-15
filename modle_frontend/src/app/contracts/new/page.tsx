@@ -137,8 +137,9 @@ function NewContractPageContent() {
         return;
       }
 
-      const templateList = Array.isArray(data)
-        ? data.filter(
+      const templateData = (data as { data?: unknown } | undefined)?.data;
+      const templateList = Array.isArray(templateData)
+        ? templateData.filter(
             (template): template is ContractTemplate =>
               typeof template?.id === "number" &&
               typeof template?.title === "string" &&
@@ -196,14 +197,18 @@ function NewContractPageContent() {
       model_name: TEMPLATE_FALLBACK_TEXT,
       model_email: TEMPLATE_FALLBACK_TEXT,
       shoot_start_at: preview.shootStartAt || TEMPLATE_FALLBACK_TEXT,
+      shootStartAt: preview.shootStartAt || TEMPLATE_FALLBACK_TEXT,
       shoot_end_at: preview.shootEndAt || TEMPLATE_FALLBACK_TEXT,
+      shootEndAt: preview.shootEndAt || TEMPLATE_FALLBACK_TEXT,
       location: form.location.trim() || TEMPLATE_FALLBACK_TEXT,
       post_content: TEMPLATE_FALLBACK_TEXT,
       post_category: TEMPLATE_FALLBACK_TEXT,
       memo: form.memo.trim() || "없음",
       payment: paymentText,
       pay_type: getPayTypeLabel(form.payType),
+      payType: getPayTypeLabel(form.payType),
       usage_scope: form.usageScope.trim() || TEMPLATE_FALLBACK_TEXT,
+      usageScope: form.usageScope.trim() || TEMPLATE_FALLBACK_TEXT,
       signer_name: TEMPLATE_FALLBACK_TEXT,
       client_agreed_at: TEMPLATE_FALLBACK_TEXT,
       model_agreed_at: TEMPLATE_FALLBACK_TEXT,
@@ -343,7 +348,9 @@ function NewContractPageContent() {
         throw new Error(getErrorMessage(error, "계약서 저장에 실패했습니다."));
       }
 
-      if (!data?.id) {
+      const savedContract = (data as { data?: { id?: number } } | undefined)?.data;
+
+      if (!savedContract?.id) {
         throw new Error("계약서 저장은 성공했지만 계약 ID를 받지 못했습니다.");
       }
 
@@ -371,7 +378,7 @@ function NewContractPageContent() {
         detailParams.set("pdfUrl", form.pdfUrl.trim());
       }
 
-      router.push(`/contracts/${data.id}?${detailParams.toString()}`);
+      router.push(`/contracts/${savedContract.id}?${detailParams.toString()}`);
     } catch (error) {
       setStatus("error");
       setMessage(
