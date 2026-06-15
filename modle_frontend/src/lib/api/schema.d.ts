@@ -140,6 +140,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/signup/additional": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["signupAdditional"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/reissue": {
         parameters: {
             query?: never;
@@ -294,6 +310,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["me"];
         put?: never;
         post?: never;
         delete?: never;
@@ -560,6 +592,23 @@ export interface components {
             /** @enum {string} */
             clientType: "INDIVIDUAL" | "ORGANIZATION";
         };
+        AdditionalInfoRequest: {
+            /** @enum {string} */
+            role: "MODEL" | "CLIENT" | "ADMIN";
+            region: string;
+            name?: string;
+            /** Format: int32 */
+            height?: number;
+            /** Format: int32 */
+            weight?: number;
+            /** Format: int32 */
+            age?: number;
+            gender?: boolean;
+            companyName?: string;
+            companyNumber?: string;
+            /** @enum {string} */
+            clientType?: "INDIVIDUAL" | "ORGANIZATION";
+        };
         LoginRequest: {
             email: string;
             password: string;
@@ -580,7 +629,9 @@ export interface components {
             /** Format: date-time */
             modifyDate: string;
             /** @enum {string} */
-            role: "MODEL" | "CLIENT" | "ADMIN";
+            role?: "MODEL" | "CLIENT" | "ADMIN";
+            /** @enum {string} */
+            status?: "INCOMPLETE" | "PENDING" | "ACTIVE" | "SUSPENDED" | "WITHDRAWN" | "REJECTED";
         };
         EmailVerifyRequest: {
             email: string;
@@ -682,10 +733,11 @@ export interface components {
             sort?: components["schemas"]["SortObject"];
             unpaged?: boolean;
             paged?: boolean;
-            /** Format: int32 */
-            pageNumber?: number;
+            unpaged?: boolean;
             /** Format: int32 */
             pageSize?: number;
+            /** Format: int32 */
+            pageNumber?: number;
         };
         SortObject: {
             empty?: boolean;
@@ -714,6 +766,11 @@ export interface components {
             id?: number;
             title?: string;
             content?: string;
+        };
+        ApiResponseUserDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["UserDto"];
         };
         ApiResponseListPendingClientResponse: {
             resultCode?: string;
@@ -990,6 +1047,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ClientRegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    signupAdditional: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdditionalInfoRequest"];
             };
         };
         responses: {
@@ -1296,6 +1377,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseListJobPostingTemplateResponse"];
+                };
+            };
+        };
+    };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseUserDto"];
                 };
             };
         };

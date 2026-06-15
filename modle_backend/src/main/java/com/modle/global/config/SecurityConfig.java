@@ -2,6 +2,9 @@ package com.modle.global.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.modle.global.auth.JwtAuthenticationFilter;
+import com.modle.global.auth.OAuth2FailureHandler;
+import com.modle.global.auth.OAuth2SuccessHandler;
+import com.modle.global.auth.OAuth2UserService;
 import com.modle.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -27,6 +30,9 @@ import java.util.List;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
+    private final OAuth2UserService oAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -60,12 +66,22 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT,
                                 "/api/v1/models/my"
                         ).permitAll()
+                        // SSO 관련 인증 없이 허용
+                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
                         // 관리자만
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         // Swagger UI 및 API Docs 허용
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // 나머지 인증 필요
                         .anyRequest().authenticated()
+                )
+                // OAuth2 로그인 설정
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(oAuth2UserService)
+                        )
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception
@@ -102,7 +118,7 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("*"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", configuration);
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 }

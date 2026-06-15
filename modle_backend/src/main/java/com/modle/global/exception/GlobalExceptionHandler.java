@@ -52,9 +52,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<ApiResponse<Void>> handle(NoSuchElementException e) {
         return new ResponseEntity<>(
-                ApiResponse.fail("404-1", "존재하지 않는 데이터에 접근했습니다."),
+                ApiResponse.fail(ErrorCode.DATA_NOT_FOUND.getResultCode(), ErrorCode.DATA_NOT_FOUND.getMessage()),
                 NOT_FOUND
         );
+    }
+
+    // 메서드 레벨 권한 부족 (@PreAuthorize 실패)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handle(AccessDeniedException e) {
+        return ResponseEntity
+                .status(ErrorCode.ACCESS_DENIED.getStatus())
+                .body(ApiResponse.fail(ErrorCode.ACCESS_DENIED.getResultCode(), ErrorCode.ACCESS_DENIED.getMessage()));
     }
 
     // 그 외 예외
@@ -63,15 +71,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(
                 ApiResponse.fail("500-1", "서버 오류가 발생했습니다."),
                 org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
-        );
-    }
-
-    // 인증은 됐지만 해당 리소스에 접근할 권한이 없는 경우 (예: 모델이 의뢰인 전용 API 호출)
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handle(AccessDeniedException e) {
-        return new ResponseEntity<>(
-                ApiResponse.fail("403-5", "접근 권한이 없습니다."),
-                FORBIDDEN
         );
     }
 }
