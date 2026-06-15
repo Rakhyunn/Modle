@@ -1,10 +1,12 @@
 "use client";
 
 import { client } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/api/error";
 import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type ContractType = "TEMPLATE" | "FILE";
-type PayType = "CASH" | "SERVICE";
+type PayType = "CASH" | "SERVICE" | "FREE";
 
 type FormState = {
   applicationId: string;
@@ -19,37 +21,55 @@ type FormState = {
   memo: string;
   pdfUrl: string;
 };
-// 초기값은 개발 편의를 위해 하드코딩, 실제로는 지원서 데이터를 불러와서 채워야 함
+
 const initialForm: FormState = {
-  applicationId: "4",
+  applicationId: "",
   contractType: "TEMPLATE",
-  shootDate: "2026-06-20",
-  shootStartTime: "14:00",
-  shootEndTime: "17:00",
-  location: "서울 강남구 스튜디오 A",
-  payment: "300000",
+  shootDate: "",
+  shootStartTime: "",
+  shootEndTime: "",
+  location: "",
+  payment: "",
   payType: "CASH",
-  usageScope: "브랜드 SNS 및 상세페이지 6개월 사용",
-  memo: "촬영 의상 2벌 준비, 원본 제공 없음",
+  usageScope: "",
+  memo: "",
   pdfUrl: "",
 };
 
 export default function NewContractPage() {
-  const [form, setForm] = useState<FormState>(initialForm);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const applicationIdFromQuery = searchParams.get("applicationId") ?? "";
+
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initialForm,
+    applicationId: applicationIdFromQuery,
+  }));
   const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">(
     "idle",
   );
   const [message, setMessage] = useState("");
+
   const isFileContract = form.contractType === "FILE";
 
   const preview = useMemo(
     () => ({
-      shootStartAt: `${form.shootDate}T${form.shootStartTime}:00`,
-      shootEndAt: `${form.shootDate}T${form.shootEndTime}:00`,
+      shootStartAt:
+        form.shootDate && form.shootStartTime
+          ? `${form.shootDate}T${form.shootStartTime}:00`
+          : "",
+      shootEndAt:
+        form.shootDate && form.shootEndTime
+          ? `${form.shootDate}T${form.shootEndTime}:00`
+          : "",
       paymentText:
         form.payType === "SERVICE"
           ? "서비스 제공"
-          : `${Number(form.payment || 0).toLocaleString("ko-KR")}원`,
+          : form.payType === "FREE"
+            ? "재능기부"
+            : form.payment
+              ? `${Number(form.payment).toLocaleString("ko-KR")}원`
+              : "-",
     }),
     [form],
   );
@@ -61,44 +81,110 @@ export default function NewContractPage() {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const handlePayTypeChange = (payType: PayType) => {
+    setForm((current) => ({
+      ...current,
+      payType,
+      payment: payType === "FREE" ? "0" : "",
+    }));
+  };
+
+  const validateForm = () => {
+    if (!form.applicationId.trim()) {
+      return "지원 ID가 없습니다. 지원서 화면에서 다시 진입해주세요.";
+    }
+
+    if (!/^\d+$/.test(form.applicationId.trim())) {
+      return "지원 ID는 숫자여야 합니다.";
+    }
+
+    if (!form.shootDate || !form.shootStartTime || !form.shootEndTime) {
+      return "촬영 날짜와 시간을 모두 입력해주세요.";
+    }
+
+    if (preview.shootStartAt >= preview.shootEndAt) {
+      return "촬영 종료 시간은 시작 시간보다 늦어야 합니다.";
+    }
+
+    if (!form.location.trim()) {
+      return "촬영 장소는 필수입니다.";
+    }
+
+    if (!form.usageScope.trim()) {
+      return "사용 범위는 필수입니다.";
+    }
+
+    const payment = Number(form.payType === "FREE" ? "0" : form.payment);
+
+    if (form.payType !== "FREE" && !form.payment.trim()) {
+      return "보수 금액은 필수입니다.";
+    }
+
+    if (Number.isNaN(payment)) {
+      return "보수 금액은 숫자여야 합니다.";
+    }
+
+    if (form.payType === "CASH" && payment <= 0) {
+      return "현금 계약의 보수 금액은 0보다 커야 합니다.";
+    }
+
+    if (form.payType === "SERVICE" && payment < 0) {
+      return "서비스 계약의 보수 금액은 0 이상이어야 합니다.";
+    }
+
+    if (form.payType === "FREE" && payment !== 0) {
+      return "재능기부 계약의 보수 금액은 0이어야 합니다.";
+    }
+
+    if (isFileContract && !form.pdfUrl.trim()) {
+      return "파일 첨부 방식 계약은 PDF URL을 포함해야 합니다.";
+    }
+
+    return null;
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("saving");
     setMessage("");
 
-    if (isFileContract && !form.pdfUrl.trim()) {
+    const validationMessage = validateForm();
+    if (validationMessage) {
       setStatus("error");
-      setMessage("파일 첨부 방식 계약은 PDF를 포함해야 합니다.");
+      setMessage(validationMessage);
       return;
     }
 
     try {
-      const { data, response } = await client.POST("/api/v1/contracts", {
+      const payment = form.payType === "FREE" ? 0 : Number(form.payment);
+
+      const { data, error, response } = await client.POST("/api/v1/contracts", {
         body: {
           applicationId: Number(form.applicationId),
           contractType: form.contractType,
           shootStartAt: preview.shootStartAt,
           shootEndAt: preview.shootEndAt,
-          location: form.location,
-          payment: Number(form.payment || 0),
+          location: form.location.trim(),
+          payment,
           payType: form.payType,
-          usageScope: form.usageScope,
-          memo: form.memo || undefined,
-          pdfUrl: form.pdfUrl || undefined,
+          usageScope: form.usageScope.trim(),
+          memo: form.memo.trim() || undefined,
+          pdfUrl: form.pdfUrl.trim() || undefined,
         },
       });
 
-      if (!response.ok) {
-        const errorMessage =
-          data && typeof data === "object" && "msg" in data
-            ? String(data.msg)
-            : "계약서 저장에 실패했습니다.";
+      if (error || !response.ok) {
+        throw new Error(getErrorMessage(error, "계약서 저장에 실패했습니다."));
+      }
 
-        throw new Error(errorMessage);
+      if (!data?.id) {
+        throw new Error("계약서 저장은 성공했지만 계약 ID를 받지 못했습니다.");
       }
 
       setStatus("success");
       setMessage("계약서가 DRAFT 상태로 저장되었습니다.");
+
+      router.push(`/contracts/${data.id}`);
     } catch (error) {
       setStatus("error");
       setMessage(
@@ -138,12 +224,11 @@ export default function NewContractPage() {
             <div className="grid gap-6 md:grid-cols-2">
               <Field label="지원 ID" required>
                 <input
-                  className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
+                  className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink disabled:text-mute"
                   inputMode="numeric"
                   value={form.applicationId}
-                  onChange={(event) =>
-                    updateField("applicationId", event.target.value)
-                  }
+                  disabled
+                  readOnly
                 />
               </Field>
 
@@ -208,8 +293,8 @@ export default function NewContractPage() {
               </Field>
 
               <Field label="보수 유형" required>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["CASH", "SERVICE"] as const).map((type) => (
+                <div className="grid grid-cols-3 gap-2">
+                  {(["CASH", "SERVICE", "FREE"] as const).map((type) => (
                     <button
                       key={type}
                       type="button"
@@ -218,9 +303,13 @@ export default function NewContractPage() {
                           ? "border-primary bg-primary text-on-primary"
                           : "border-hairline bg-surface text-body hover:border-hairline-strong"
                       }`}
-                      onClick={() => updateField("payType", type)}
+                      onClick={() => handlePayTypeChange(type)}
                     >
-                      {type === "CASH" ? "현금" : "서비스"}
+                      {type === "CASH"
+                        ? "현금"
+                        : type === "SERVICE"
+                          ? "서비스"
+                          : "재능기부"}
                     </button>
                   ))}
                 </div>
@@ -230,7 +319,8 @@ export default function NewContractPage() {
                 <input
                   className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                   inputMode="numeric"
-                  value={form.payment}
+                  value={form.payType === "FREE" ? "0" : form.payment}
+                  disabled={form.payType === "FREE"}
                   onChange={(event) =>
                     updateField("payment", event.target.value)
                   }
@@ -264,8 +354,8 @@ export default function NewContractPage() {
                   className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                   placeholder={
                     isFileContract
-                      ? "FILE 계약은 PDF를 포함해야 합니다."
-                      : "파일 업로드 연동 전 임시 URL"
+                      ? "FILE 계약은 PDF URL을 입력해야 합니다."
+                      : "FILE 계약일 때만 사용합니다."
                   }
                   value={form.pdfUrl}
                   onChange={(event) =>
@@ -297,6 +387,7 @@ export default function NewContractPage() {
               >
                 {status === "saving" ? "저장 중" : "임시 저장"}
               </button>
+
               {message ? (
                 <p
                   className={`mt-3 rounded-md px-3 py-2 text-[13px] leading-5 ${
