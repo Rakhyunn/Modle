@@ -140,6 +140,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/signup/additional": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["signupAdditional"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/reissue": {
         parameters: {
             query?: never;
@@ -319,6 +335,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contracts/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTemplates_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/clients": {
         parameters: {
             query?: never;
@@ -349,6 +381,22 @@ export interface paths {
         post?: never;
         /** 삭제 */
         delete: operations["delete_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -404,10 +452,10 @@ export interface components {
             introduction?: string;
             profileImageUrl?: string;
         };
-        RsDataVoid: {
-            resultCode: string;
-            msg: string;
-            data: unknown;
+        ApiResponseVoid: {
+            resultCode?: string;
+            msg?: string;
+            data?: unknown;
         };
         ClientModifyReqBody: {
             companyName: string;
@@ -417,15 +465,15 @@ export interface components {
             introduction?: string;
             profileImageUrl?: string;
         };
+        ApiResponseListPortfolioDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["PortfolioDto"][];
+        };
         PortfolioDto: {
             /** Format: int64 */
             id?: number;
             imgUrl?: string;
-        };
-        RsDataListPortfolioDto: {
-            resultCode: string;
-            msg: string;
-            data: components["schemas"]["PortfolioDto"][];
         };
         JobPostingCreateRequest: {
             title: string;
@@ -551,11 +599,6 @@ export interface components {
             age?: number;
             gender: boolean;
         };
-        ApiResponseVoid: {
-            resultCode?: string;
-            msg?: string;
-            data?: unknown;
-        };
         ClientRegisterRequest: {
             email: string;
             password: string;
@@ -564,6 +607,23 @@ export interface components {
             companyNumber: string;
             /** @enum {string} */
             clientType: "INDIVIDUAL" | "ORGANIZATION";
+        };
+        AdditionalInfoRequest: {
+            /** @enum {string} */
+            role: "MODEL" | "CLIENT" | "ADMIN";
+            region: string;
+            name?: string;
+            /** Format: int32 */
+            height?: number;
+            /** Format: int32 */
+            weight?: number;
+            /** Format: int32 */
+            age?: number;
+            gender?: boolean;
+            companyName?: string;
+            companyNumber?: string;
+            /** @enum {string} */
+            clientType?: "INDIVIDUAL" | "ORGANIZATION";
         };
         LoginRequest: {
             email: string;
@@ -585,7 +645,9 @@ export interface components {
             /** Format: date-time */
             modifyDate: string;
             /** @enum {string} */
-            role: "MODEL" | "CLIENT" | "ADMIN";
+            role?: "MODEL" | "CLIENT" | "ADMIN";
+            /** @enum {string} */
+            status?: "INCOMPLETE" | "PENDING" | "ACTIVE" | "SUSPENDED" | "WITHDRAWN" | "REJECTED";
         };
         EmailVerifyRequest: {
             email: string;
@@ -626,6 +688,11 @@ export interface components {
         RejectRequest: {
             reason: string;
         };
+        ApiResponseListModelDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["ModelDto"][];
+        };
         ModelDto: {
             /** Format: int64 */
             id: number;
@@ -651,15 +718,10 @@ export interface components {
             reviewCount: number;
             portfolios?: components["schemas"]["PortfolioDto"][];
         };
-        RsDataListModelDto: {
-            resultCode: string;
-            msg: string;
-            data: components["schemas"]["ModelDto"][];
-        };
-        RsDataModelDto: {
-            resultCode: string;
-            msg: string;
-            data: components["schemas"]["ModelDto"];
+        ApiResponseModelDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["ModelDto"];
         };
         Pageable: {
             /** Format: int32 */
@@ -712,22 +774,19 @@ export interface components {
             empty?: boolean;
         };
         PageableObject: {
-            paged?: boolean;
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"];
-            unpaged?: boolean;
             paged?: boolean;
-            unpaged?: boolean;
-            /** Format: int32 */
-            pageSize?: number;
             /** Format: int32 */
             pageNumber?: number;
+            /** Format: int32 */
+            pageSize?: number;
             unpaged?: boolean;
         };
         SortObject: {
-            sorted?: boolean;
             empty?: boolean;
+            sorted?: boolean;
             unsorted?: boolean;
         };
         ApiResponseObject: {
@@ -753,6 +812,11 @@ export interface components {
             title?: string;
             content?: string;
         };
+        ApiResponseListClientDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["ClientDto"][];
+        };
         ClientDto: {
             /** Format: int64 */
             id: number;
@@ -762,7 +826,7 @@ export interface components {
             modifiedDate: string;
             clientType: string;
             companyName: string;
-            componyNumber?: string;
+            companyNumber?: string;
             introduction?: string;
             profileImageUrl?: string;
             /** Format: double */
@@ -770,15 +834,15 @@ export interface components {
             /** Format: int32 */
             reviewCount?: number;
         };
-        RsDataListClientDto: {
-            resultCode: string;
-            msg: string;
-            data: components["schemas"]["ClientDto"][];
+        ApiResponseClientDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["ClientDto"];
         };
-        RsDataClientDto: {
-            resultCode: string;
-            msg: string;
-            data: components["schemas"]["ClientDto"];
+        ApiResponseUserDto: {
+            resultCode?: string;
+            msg?: string;
+            data?: components["schemas"]["UserDto"];
         };
         ApiResponseListPendingClientResponse: {
             resultCode?: string;
@@ -821,7 +885,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataModelDto"];
+                    "*/*": components["schemas"]["ApiResponseModelDto"];
                 };
             };
         };
@@ -845,7 +909,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataVoid"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -865,7 +929,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataClientDto"];
+                    "*/*": components["schemas"]["ApiResponseClientDto"];
                 };
             };
         };
@@ -889,7 +953,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataVoid"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -915,7 +979,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataListPortfolioDto"];
+                    "*/*": components["schemas"]["ApiResponseListPortfolioDto"];
                 };
             };
         };
@@ -1055,6 +1119,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ClientRegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    signupAdditional: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdditionalInfoRequest"];
             };
         };
         responses: {
@@ -1314,7 +1402,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataListModelDto"];
+                    "*/*": components["schemas"]["ApiResponseListModelDto"];
                 };
             };
         };
@@ -1336,7 +1424,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataModelDto"];
+                    "*/*": components["schemas"]["ApiResponseModelDto"];
                 };
             };
         };
@@ -1358,7 +1446,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataModelDto"];
+                    "*/*": components["schemas"]["ApiResponseModelDto"];
                 };
             };
         };
@@ -1385,6 +1473,26 @@ export interface operations {
             };
         };
     };
+    getTemplates_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ContractTemplateResponse"][];
+                };
+            };
+        };
+    };
     getItems_1: {
         parameters: {
             query?: never;
@@ -1400,7 +1508,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataListClientDto"];
+                    "*/*": components["schemas"]["ApiResponseListClientDto"];
                 };
             };
         };
@@ -1422,7 +1530,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataClientDto"];
+                    "*/*": components["schemas"]["ApiResponseClientDto"];
                 };
             };
         };
@@ -1444,12 +1552,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataClientDto"];
+                    "*/*": components["schemas"]["ApiResponseClientDto"];
                 };
             };
         };
     };
-    getTemplates_1: {
+    me: {
         parameters: {
             query?: never;
             header?: never;
@@ -1464,7 +1572,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ContractTemplateResponse"][];
+                    "*/*": components["schemas"]["ApiResponseUserDto"];
                 };
             };
         };
@@ -1506,7 +1614,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RsDataVoid"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
