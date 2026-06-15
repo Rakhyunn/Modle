@@ -2,7 +2,7 @@
 
 import { client } from "@/lib/api/client";
 import { getErrorMessage } from "@/lib/api/error";
-import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { FormEvent, ReactNode, Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type ContractType = "TEMPLATE" | "FILE";
@@ -37,6 +37,14 @@ const initialForm: FormState = {
 };
 
 export default function NewContractPage() {
+  return (
+    <Suspense fallback={<NewContractPageFallback />}>
+      <NewContractPageContent />
+    </Suspense>
+  );
+}
+
+function NewContractPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const applicationIdFromQuery = searchParams.get("applicationId") ?? "";
@@ -402,6 +410,18 @@ export default function NewContractPage() {
             </div>
           </aside>
         </form>
+      </div>
+    </main>
+  );
+}
+
+function NewContractPageFallback() {
+  return (
+    <main className="min-h-screen bg-canvas text-ink">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-xl border border-hairline bg-surface p-6 text-[15px] text-body">
+          계약서 작성 화면을 불러오는 중입니다.
+        </div>
       </div>
     </main>
   );
