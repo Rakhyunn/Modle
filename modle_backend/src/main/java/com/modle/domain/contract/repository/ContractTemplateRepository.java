@@ -8,6 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface ContractTemplateRepository extends JpaRepository<ContractTemplate, Long> {
-    // 기본 템플릿은 MVP로 하나만 존재하므로, 가장 최근에 생성된 템플릿을 가져오는 메서드
+    // MVP 단계에서는 템플릿 1개만 제공하므로 첫 번째 템플릿을 조회한다.
     Optional<ContractTemplate> findFirstByOrderByIdAsc();
 }

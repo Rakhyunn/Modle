@@ -113,6 +113,5 @@ public class Contract extends BaseEntity {
 
     public void updatePdfUrl(String pdfUrl) {
         this.pdfUrl = pdfUrl;
-        this.status = ContractStatus.DRAFT;
     }
 }

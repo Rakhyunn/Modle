@@ -7,6 +7,7 @@ import com.modle.domain.contract.dto.response.ContractResponse;
 import com.modle.domain.contract.dto.response.ContractTemplateResponse;
 import com.modle.domain.contract.entity.Contract;
 import com.modle.domain.contract.entity.ContractTemplate;
+import com.modle.domain.contract.entity.type.ContractStatus;
 import com.modle.domain.contract.entity.type.ContractType;
 import com.modle.domain.contract.entity.type.PayType;
 import com.modle.domain.contract.pdf.ContractPdfGenerator;
@@ -75,10 +76,22 @@ public class ContractService {
         Contract contract = contractRepository.findById(request.contractId())
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
+        validateDraftStatus(contract);
+
+        // TODO: Application 도메인 연동 후
+        // applicationId -> 공고 작성자 -> clientUserId 검증 연결 필요
+
         if (contract.getContractType() == ContractType.FILE) {
             return handleFileContract(contract);
         }
         return handleTemplateContract(contract);
+    }
+
+    private void validateDraftStatus(Contract contract) {
+        if(contract.getStatus() != ContractStatus.DRAFT) {
+            throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
+        }
+
     }
 
     private void validateDuplicateContract(Long applicationId) {

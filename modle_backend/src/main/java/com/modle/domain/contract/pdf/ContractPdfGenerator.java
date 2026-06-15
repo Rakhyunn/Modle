@@ -44,7 +44,6 @@ public class ContractPdfGenerator {
             document.save(outputStream);
             return outputStream.toByteArray();
         } catch (IOException e) {
-            e.printStackTrace();
             throw new CustomException(ErrorCode.CONTRACT_PDF_GENERATION_FAILED);
         }
 
