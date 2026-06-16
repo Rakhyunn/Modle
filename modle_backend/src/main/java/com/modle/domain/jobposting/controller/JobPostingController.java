@@ -8,7 +8,7 @@ import com.modle.domain.jobposting.dto.response.JobPostingListResponse;
 import com.modle.domain.jobposting.dto.response.JobPostingResponse;
 import com.modle.domain.jobposting.dto.response.JobPostingTemplateGenerateResponse;
 import com.modle.domain.jobposting.dto.response.JobPostingTemplateResponse;
-import com.modle.domain.jobposting.entity.ViewerType;
+import com.modle.domain.jobposting.entity.type.ViewerType;
 import com.modle.domain.jobposting.service.JobPostingService;
 import com.modle.domain.jobposting.service.JobPostingTemplateService;
 import com.modle.global.auth.SecurityUser;
@@ -114,7 +114,7 @@ public class JobPostingController {
     public ApiResponse<Object> getJobPostingDetail(
             @PathVariable Long id,
             @AuthenticationPrincipal SecurityUser securityUser) {
-        ViewerType viewerType = switch (securityUser.getRole()) {
+        ViewerType viewerType = securityUser == null ? ViewerType.OTHER : switch (securityUser.getRole()) {
             case "MODEL" -> ViewerType.MODEL;
             case "CLIENT" -> ViewerType.CLIENT;
             default -> ViewerType.OTHER;
