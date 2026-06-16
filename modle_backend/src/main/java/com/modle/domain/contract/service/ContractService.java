@@ -102,6 +102,7 @@ public class ContractService {
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
         validateDraftStatus(contract);
+        validatePdfReady(contract);
 
         MessageConversation conversation = messageService.findConversationByApplicationId(contract.getApplicationId());
         validateContractClient(clientUserId, conversation);
@@ -145,6 +146,11 @@ public class ContractService {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
         }
 
+    }
+    private void validatePdfReady(Contract contract) {
+        if(contract.getPdfUrl() == null || contract.getPdfUrl().isBlank()) {
+            throw new CustomException(ErrorCode.CONTRACT_PDF_REQUIRED);
+        }
     }
 
     private void validateDuplicateContract(Long applicationId) {

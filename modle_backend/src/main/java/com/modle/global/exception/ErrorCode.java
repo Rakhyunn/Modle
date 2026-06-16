@@ -16,6 +16,7 @@ public enum ErrorCode {
     USER_SUSPENDED(HttpStatus.FORBIDDEN, "403-1", "정지된 계정입니다."),
     USER_WITHDRAWN(HttpStatus.FORBIDDEN, "403-2", "탈퇴한 계정입니다."),
     USER_REJECTED(HttpStatus.FORBIDDEN, "403-3", "가입이 반려된 계정입니다."),
+    CONTRACT_PDF_REQUIRED(HttpStatus.BAD_REQUEST, "400-12", "PDF 생성이 완료된 계약서만 발송할 수 있습니다."),
 
     // 이메일 인증
     EMAIL_CODE_NOT_FOUND(HttpStatus.BAD_REQUEST, "400-1", "인증 코드가 만료되었거나 존재하지 않습니다."),
