@@ -43,6 +43,7 @@ public enum ErrorCode {
     CONTRACT_NOT_FOUND(HttpStatus.NOT_FOUND, "404-4", "계약서를 찾을 수 없습니다."),
     CONTRACT_TEMPLATE_NOT_FOUND(HttpStatus.NOT_FOUND, "404-5", "계약서 템플릿을 찾을 수 없습니다."),
     CONTRACT_PDF_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "500-2", "계약서 PDF 생성에 실패했습니다."),
+    CONTRACT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "403-10", "계약서에 접근할 권한이 없습니다."),
 
     // 공고
     JOB_POSTING_NOT_FOUND(HttpStatus.NOT_FOUND, "404-2", "공고를 찾을 수 없습니다."),
