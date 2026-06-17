@@ -7,7 +7,6 @@ import com.modle.domain.contract.dto.response.ContractResponse;
 import com.modle.domain.contract.dto.response.ContractTemplateResponse;
 import com.modle.domain.contract.dto.response.ContractViewResponse;
 import com.modle.domain.contract.entity.Contract;
-import com.modle.domain.contract.entity.ContractTemplate;
 import com.modle.domain.contract.entity.type.ContractStatus;
 import com.modle.domain.contract.entity.type.ContractType;
 import com.modle.domain.contract.pdf.ContractPdfGenerator;
@@ -24,11 +23,14 @@ import com.modle.global.gcs.GcsService;
 import com.modle.infra.mail.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -253,10 +255,7 @@ public class ContractService {
     }
 
     private ContractPdfResponse handleTemplateContract(Contract contract) {
-        ContractTemplate template = contractTemplateRepository.findFirstByOrderByIdAsc()
-                .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_TEMPLATE_NOT_FOUND));
-
-        String templateContent = template.getContent();
+        String templateContent = loadContractTemplate();
         String renderedContent = contractTemplateRenderer.render(templateContent, contract);
 
         byte[] pdfBytes = contractPdfGenerator.generate(renderedContent);
@@ -266,6 +265,15 @@ public class ContractService {
 
         contract.updatePdfUrl(pdfUrl);
         return ContractPdfResponse.from(contract);
+    }
+
+    private String loadContractTemplate() {
+        try{
+            ClassPathResource resource = new ClassPathResource("templates/contract-template.html");
+            return resource.getContentAsString(StandardCharsets.UTF_8);
+        }catch (IOException e) {
+            throw new CustomException(ErrorCode.CONTRACT_TEMPLATE_LOAD_FAILED);
+        }
     }
 
     private void validateViewable(Contract contract) {
