@@ -1,7 +1,5 @@
 package com.modle.domain.message.service;
 
-import com.modle.domain.application.entity.Application;
-import com.modle.domain.application.service.ApplicationService;
 import com.modle.domain.jobposting.entity.JobPosting;
 import com.modle.domain.jobposting.entity.type.JobPostingStatus;
 import com.modle.domain.jobposting.repository.JobPostingRepository;
@@ -40,7 +38,6 @@ public class MessageService {
     private final MessageConversationRepository conversationRepository;
     private final UserService userService;
     private final JobPostingRepository jobPostingRepository;
-    private final ApplicationService applicationService;
 
     @Transactional
     public MessageConversationResponse createConversation(
@@ -69,9 +66,6 @@ public class MessageService {
         //      공고 소유권만 검증하고 상태 검증은 하지 않음
         // 동일 모델·동일 공고 조합이면 기존 대화방을 재사용해 중복 생성을 막는다.
         if (request.applicationId() != null) {
-            Application application = applicationService.getApplication(request.applicationId());
-            validateContractConversationApplication(application, request);
-
             MessageConversation existingConversation = conversationRepository
                     .findByApplicationId(request.applicationId())
                     .orElse(null);
@@ -268,19 +262,6 @@ public class MessageService {
 
         if (!posting.getClientId().equals(clientId)) {
             throw new CustomException(ErrorCode.MESSAGE_POST_NOT_AVAILABLE);
-        }
-    }
-
-    private void validateContractConversationApplication(
-            Application application,
-            CreateConversationRequest request
-    ) {
-        if (request.postId() == null || !application.getJobPostingId().equals(request.postId())) {
-            throw new CustomException(ErrorCode.MESSAGE_POST_NOT_AVAILABLE);
-        }
-
-        if (!application.getModelId().equals(request.receiverId())) {
-            throw new CustomException(ErrorCode.MESSAGE_CONVERSATION_CREATE_FORBIDDEN);
         }
     }
 }
