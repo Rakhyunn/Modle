@@ -61,11 +61,14 @@ public class ContractService {
     @Value("${app.frontend.base-url:http://localhost:3000}")
     private String frontendBaseUrl;
 
-    // TODO: Application 도메인 연동 후
-    // applicationId 존재 검증 및 현재 로그인한 CLIENT의 공고인지 소유권 검증 추가
     @Transactional
     public ContractResponse createContract(Long clientUserId, ContractCreateRequest request) {
         validateDuplicateContract(request.applicationId());
+
+        Application application = applicationService.getApplication(request.applicationId());
+        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+
+        validateContractOwner(clientUserId, jobPosting.clientId());
         validateCreateRequest(request);
 
         Contract contract = Contract.createDraft(
@@ -87,7 +90,6 @@ public class ContractService {
             // applicationId의 unique 제약 조건 위반 시 예외 처리
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
         }
-
     }
 
     @Transactional
@@ -97,8 +99,10 @@ public class ContractService {
 
         validateDraftStatus(contract);
 
-        // TODO: Application 도메인 연동 후
-        // applicationId -> 공고 작성자 -> clientUserId 검증 연결 필요
+        Application application = applicationService.getApplication(contract.getApplicationId());
+        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+
+        validateContractOwner(clientUserId, jobPosting.clientId());
 
         if (contract.getContractType() == ContractType.FILE) {
             return handleFileContract(contract);
@@ -176,12 +180,10 @@ public class ContractService {
                 """.formatted(contractLink);
     }
 
-
     private void validateDraftStatus(Contract contract) {
         if (contract.getStatus() != ContractStatus.DRAFT) {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
         }
-
     }
 
     private void validatePdfReady(Contract contract) {
@@ -236,7 +238,6 @@ public class ContractService {
         }
     }
 
-
     private void validateShootTime(ContractCreateRequest request) {
         if (!request.shootEndAt().isAfter(request.shootStartAt())) {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_SHOOT_TIME);
@@ -283,10 +284,10 @@ public class ContractService {
     }
 
     private String loadContractTemplate() {
-        try{
+        try {
             ClassPathResource resource = new ClassPathResource("templates/contract-template.html");
             return resource.getContentAsString(StandardCharsets.UTF_8);
-        }catch (IOException e) {
+        } catch (IOException e) {
             throw new CustomException(ErrorCode.CONTRACT_TEMPLATE_LOAD_FAILED);
         }
     }
@@ -312,5 +313,4 @@ public class ContractService {
             throw new CustomException(ErrorCode.CONTRACT_FORBIDDEN);
         }
     }
-
 }
