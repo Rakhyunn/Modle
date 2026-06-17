@@ -13,7 +13,6 @@ import com.modle.domain.jobposting.entity.JobPosting;
 import com.modle.domain.jobposting.entity.type.JobPostingStatus;
 import com.modle.domain.jobposting.repository.JobPostingRepository;
 import com.modle.domain.jobposting.service.JobPostingService;
-import com.modle.domain.message.dto.request.CreateConversationRequest;
 import com.modle.domain.message.dto.response.MessageConversationResponse;
 import com.modle.domain.message.entity.Message;
 import com.modle.domain.message.entity.MessageConversation;
@@ -179,13 +178,11 @@ public class ApplicationService {
 
         Long modelUserId = model.getUser().getId();
 
-        MessageConversationResponse conversation = messageService.createConversation(
+        MessageConversationResponse conversation = messageService.createApplicationConversation(
                 clientId,
-                new CreateConversationRequest(
-                        modelUserId,
-                        application.getJobPostingId(),
-                        application.getId()
-                )
+                modelUserId,
+                application.getJobPostingId(),
+                application.getId()
         );
 
         messageService.sendSystemMessage(
@@ -231,15 +228,15 @@ public class ApplicationService {
                         message.getContent(),
                         conversation.getPostId(),
                         message.getCreatedAt().toLocalDateTime()
-                        ))
+                ))
                 .toList();
     }
 
     private String createContactMessage(String jobPostingTitle) {
         return """
-            지원하신 공고에 컨택이 도착했습니다.
-            공고명: %s
-            쪽지함에서 상세 내용을 확인해 주세요.
-            """.formatted(jobPostingTitle);
+                지원하신 공고에 컨택이 도착했습니다.
+                공고명: %s
+                쪽지함에서 상세 내용을 확인해 주세요.
+                """.formatted(jobPostingTitle);
     }
 }
