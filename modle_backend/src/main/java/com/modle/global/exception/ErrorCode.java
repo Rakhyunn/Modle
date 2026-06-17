@@ -17,6 +17,7 @@ public enum ErrorCode {
     USER_WITHDRAWN(HttpStatus.FORBIDDEN, "403-2", "탈퇴한 계정입니다."),
     USER_REJECTED(HttpStatus.FORBIDDEN, "403-3", "가입이 반려된 계정입니다."),
     CONTRACT_PDF_REQUIRED(HttpStatus.BAD_REQUEST, "400-12", "PDF 생성이 완료된 계약서만 발송할 수 있습니다."),
+    TOKEN_STOLEN(HttpStatus.UNAUTHORIZED, "401-5", "보안 위협이 감지되었습니다. 다시 로그인해주세요."),
 
     // 이메일 인증
     EMAIL_CODE_NOT_FOUND(HttpStatus.BAD_REQUEST, "400-1", "인증 코드가 만료되었거나 존재하지 않습니다."),
@@ -79,6 +80,9 @@ public enum ErrorCode {
     APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "404-6", "지원 내역을 찾을 수 없습니다."),
     APPLICATION_CANCEL_FORBIDDEN(HttpStatus.FORBIDDEN, "403-10", "본인의 지원만 취소할 수 있습니다."),
     APPLICATION_CANCEL_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "400-13", "지원 완료 상태에서만 취소할 수 있습니다."),
+    APPLICATION_CONTACT_FORBIDDEN(HttpStatus.FORBIDDEN, "403-11", "해당 공고의 작성자만 컨택할 수 있습니다."),
+    APPLICATION_ALREADY_CONTACTED(HttpStatus.CONFLICT, "409-7", "이미 컨택된 지원입니다."),
+    APPLICATION_CONTACT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "400-14", "지원 완료(APPLIED) 상태에서만 컨택할 수 있습니다."),
 
     // 잘못된 접근
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "403-6", "권한이 없습니다."),

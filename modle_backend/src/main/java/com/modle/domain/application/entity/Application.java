@@ -43,6 +43,10 @@ public class Application extends BaseEntity {
         this.status = ApplicationStatus.APPLICATION_CANCELLED;
     }
 
+    public void contact() {
+        this.status = ApplicationStatus.CONTACTED;
+    }
+
     public void markContractSent() {
         this.status = ApplicationStatus.CONTRACT_SENT;
     }
