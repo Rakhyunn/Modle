@@ -105,6 +105,7 @@ public class ContractService {
         validateDraftStatus(contract);
         validatePdfReady(contract);
 
+        // TODO: MATCH/Application 연동 완료 후 applicationId -> modelId/clientId 기준 검증으로 전환
         MessageConversation conversation = messageService.findConversationByApplicationId(contract.getApplicationId());
         validateContractClient(clientUserId, conversation);
 
@@ -131,6 +132,7 @@ public class ContractService {
 
         validateViewable(contract);
 
+        // TODO: MATCH/Application 연동 완료 후 applicationId -> modelId 기준 검증으로 전환
         MessageConversation conversation = messageService.findConversationByApplicationId(contract.getApplicationId());
 
         validateContractModel(modelUserId, conversation);
