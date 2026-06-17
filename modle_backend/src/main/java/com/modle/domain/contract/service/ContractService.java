@@ -1,6 +1,7 @@
 package com.modle.domain.contract.service;
 
 import com.modle.domain.application.entity.Application;
+import com.modle.domain.application.entity.type.ApplicationStatus;
 import com.modle.domain.application.service.ApplicationService;
 import com.modle.domain.contract.dto.request.ContractCreateRequest;
 import com.modle.domain.contract.dto.request.ContractPdfCreateRequest;
@@ -69,6 +70,7 @@ public class ContractService {
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
         validateContractOwner(clientUserId, jobPosting.clientId());
+        validateContractApplicableStatus(application);
         validateCreateRequest(request);
 
         Contract contract = Contract.createDraft(
@@ -103,6 +105,7 @@ public class ContractService {
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
         validateContractOwner(clientUserId, jobPosting.clientId());
+        validateContractApplicableStatus(application);
 
         if (contract.getContractType() == ContractType.FILE) {
             return handleFileContract(contract);
@@ -122,6 +125,7 @@ public class ContractService {
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
         validateContractOwner(clientUserId, jobPosting.clientId());
+        validateContractApplicableStatus(application);
 
         User model = userService.findById(application.getModelId());
 
@@ -195,6 +199,13 @@ public class ContractService {
     private void validateDuplicateContract(Long applicationId) {
         if (contractRepository.existsByApplicationId(applicationId)) {
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
+        }
+    }
+
+    private void validateContractApplicableStatus(Application application) {
+        if (application.getStatus() != ApplicationStatus.APPLIED
+                && application.getStatus() != ApplicationStatus.CONTACTED) {
+            throw new CustomException(ErrorCode.INVALID_STATUS_CHANGE);
         }
     }
 
