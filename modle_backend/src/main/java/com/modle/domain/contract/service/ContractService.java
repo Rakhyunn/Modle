@@ -1,5 +1,7 @@
 package com.modle.domain.contract.service;
 
+import com.modle.domain.application.entity.Application;
+import com.modle.domain.application.service.ApplicationService;
 import com.modle.domain.contract.dto.request.ContractCreateRequest;
 import com.modle.domain.contract.dto.request.ContractPdfCreateRequest;
 import com.modle.domain.contract.dto.response.ContractPdfResponse;
@@ -13,7 +15,10 @@ import com.modle.domain.contract.pdf.ContractPdfGenerator;
 import com.modle.domain.contract.repository.ContractRepository;
 import com.modle.domain.contract.repository.ContractTemplateRepository;
 import com.modle.domain.contract.template.ContractTemplateRenderer;
-import com.modle.domain.message.entity.MessageConversation;
+import com.modle.domain.jobposting.dto.response.JobPostingResponse;
+import com.modle.domain.jobposting.service.JobPostingService;
+import com.modle.domain.message.dto.request.CreateConversationRequest;
+import com.modle.domain.message.dto.response.MessageConversationResponse;
 import com.modle.domain.message.service.MessageService;
 import com.modle.domain.user.entity.User;
 import com.modle.domain.user.service.UserService;
@@ -47,11 +52,13 @@ public class ContractService {
     private final ContractPdfGenerator contractPdfGenerator;
     private final ContractTemplateRenderer contractTemplateRenderer;
 
+    private final ApplicationService applicationService;
+    private final JobPostingService jobPostingService;
     private final MessageService messageService;
     private final UserService userService;
     private final MailService mailService;
 
-    @Value("${app.frontend-base-url:http://localhost:3000}")
+    @Value("${app.frontend.base-url:http://localhost:3000}")
     private String frontendBaseUrl;
 
     // TODO: Application 도메인 연동 후
@@ -107,22 +114,38 @@ public class ContractService {
         validateDraftStatus(contract);
         validatePdfReady(contract);
 
-        // TODO: MATCH/Application 연동 완료 후 applicationId -> modelId/clientId 기준 검증으로 전환
-        MessageConversation conversation = messageService.findConversationByApplicationId(contract.getApplicationId());
-        validateContractClient(clientUserId, conversation);
+        Application application = applicationService.getApplication(contract.getApplicationId());
+        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
-        User model = userService.findById(conversation.getModelId());
+        validateContractOwner(clientUserId, jobPosting.clientId());
+
+        User model = userService.findById(application.getModelId());
+
+        MessageConversationResponse conversation = messageService.createConversation(
+                clientUserId,
+                new CreateConversationRequest(
+                        model.getId(),
+                        application.getJobPostingId(),
+                        application.getId()
+                )
+        );
+
         String contractLink = createContractLink(contract.getId());
 
-        mailService.sendContractNotificationEmail(model.getEmail(), contractLink);
         messageService.sendSystemMessage(
-                conversation.getId(),
+                conversation.id(),
                 clientUserId,
                 null,
                 createContractNotificationMessage(contractLink)
         );
 
+        mailService.sendContractNotificationEmail(
+                model.getEmail(),
+                contractLink
+        );
+
         contract.notifyModel(LocalDateTime.now());
+        applicationService.markContractSent(contract.getApplicationId());
 
         return ContractResponse.from(contract);
     }
@@ -134,20 +157,12 @@ public class ContractService {
 
         validateViewable(contract);
 
-        // TODO: MATCH/Application 연동 완료 후 applicationId -> modelId 기준 검증으로 전환
-        MessageConversation conversation = messageService.findConversationByApplicationId(contract.getApplicationId());
-
-        validateContractModel(modelUserId, conversation);
+        Application application = applicationService.getApplication(contract.getApplicationId());
+        validateContractTargetModel(modelUserId, application.getModelId());
 
         contract.markViewedAt(LocalDateTime.now());
 
         return ContractViewResponse.from(contract);
-    }
-
-    private void validateContractClient(Long clientUserId, MessageConversation conversation) {
-        if (!conversation.getClientId().equals(clientUserId)) {
-            throw new CustomException(ErrorCode.CONTRACT_ACCESS_DENIED);
-        }
     }
 
     private String createContractLink(Long contractId) {
@@ -286,11 +301,16 @@ public class ContractService {
         }
     }
 
-    private void validateContractModel(Long modelUserId, MessageConversation conversation) {
-        if (!conversation.getModelId().equals(modelUserId)) {
-            throw new CustomException(ErrorCode.CONTRACT_ACCESS_DENIED);
+    private void validateContractOwner(Long clientUserId, Long ownerClientId) {
+        if (!ownerClientId.equals(clientUserId)) {
+            throw new CustomException(ErrorCode.CONTRACT_FORBIDDEN);
         }
     }
 
+    private void validateContractTargetModel(Long modelUserId, Long contractModelId) {
+        if (!contractModelId.equals(modelUserId)) {
+            throw new CustomException(ErrorCode.CONTRACT_FORBIDDEN);
+        }
+    }
 
 }

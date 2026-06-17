@@ -42,4 +42,8 @@ public class Application extends BaseEntity {
     public void cancel() {
         this.status = ApplicationStatus.APPLICATION_CANCELLED;
     }
+
+    public void markContractSent() {
+        this.status = ApplicationStatus.CONTRACT_SENT;
+    }
 }
