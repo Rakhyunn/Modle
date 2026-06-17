@@ -5,6 +5,7 @@ import com.modle.domain.contract.dto.request.ContractPdfCreateRequest;
 import com.modle.domain.contract.dto.response.ContractPdfResponse;
 import com.modle.domain.contract.dto.response.ContractResponse;
 import com.modle.domain.contract.dto.response.ContractTemplateResponse;
+import com.modle.domain.contract.dto.response.ContractViewResponse;
 import com.modle.domain.contract.entity.Contract;
 import com.modle.domain.contract.entity.ContractTemplate;
 import com.modle.domain.contract.entity.type.ContractStatus;
@@ -123,8 +124,24 @@ public class ContractService {
         return ContractResponse.from(contract);
     }
 
+    @Transactional
+    public ContractViewResponse viewContract(Long modelUserId, Long contractId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
+
+        validateViewable(contract);
+
+        MessageConversation conversation = messageService.findConversationByApplicationId(contract.getApplicationId());
+
+        validateContractModel(modelUserId, conversation);
+
+        contract.markViewedAt(LocalDateTime.now());
+
+        return ContractViewResponse.from(contract);
+    }
+
     private void validateContractClient(Long clientUserId, MessageConversation conversation) {
-        if(!conversation.getClientId().equals(clientUserId)) {
+        if (!conversation.getClientId().equals(clientUserId)) {
             throw new CustomException(ErrorCode.CONTRACT_ACCESS_DENIED);
         }
     }
@@ -147,8 +164,9 @@ public class ContractService {
         }
 
     }
+
     private void validatePdfReady(Contract contract) {
-        if(contract.getPdfUrl() == null || contract.getPdfUrl().isBlank()) {
+        if (contract.getPdfUrl() == null || contract.getPdfUrl().isBlank()) {
             throw new CustomException(ErrorCode.CONTRACT_PDF_REQUIRED);
         }
     }
@@ -247,5 +265,22 @@ public class ContractService {
         contract.updatePdfUrl(pdfUrl);
         return ContractPdfResponse.from(contract);
     }
+
+    private void validateViewable(Contract contract) {
+        if (contract.getStatus() == ContractStatus.DRAFT) {
+            throw new CustomException(ErrorCode.CONTRACT_NOT_VIEWABLE);
+        }
+
+        if (contract.getPdfUrl() == null || contract.getPdfUrl().isBlank()) {
+            throw new CustomException(ErrorCode.CONTRACT_PDF_REQUIRED);
+        }
+    }
+
+    private void validateContractModel(Long modelUserId, MessageConversation conversation) {
+        if (!conversation.getModelId().equals(modelUserId)) {
+            throw new CustomException(ErrorCode.CONTRACT_ACCESS_DENIED);
+        }
+    }
+
 
 }
