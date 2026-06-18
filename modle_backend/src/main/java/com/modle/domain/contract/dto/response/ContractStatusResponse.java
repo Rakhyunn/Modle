@@ -13,6 +13,7 @@ public record ContractStatusResponse(
         Boolean clientAgreed,
         Boolean modelAgreed,
         String pdfUrl,
+        String rejectReason,
         boolean shootingAvailable
 ) {
 
@@ -29,6 +30,7 @@ public record ContractStatusResponse(
                 contract.getClientAgreed(),
                 contract.getModelAgreed(),
                 contract.getPdfUrl(),
+                contract.getRejectReason(),
                 shootingAvailable
         );
     }

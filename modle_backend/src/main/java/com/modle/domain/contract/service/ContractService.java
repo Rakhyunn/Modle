@@ -73,7 +73,7 @@ public class ContractService {
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
         validateContractOwner(clientUserId, jobPosting.clientId());
-        validateContractApplicableStatus(application);
+        validateContractDraftableStatus(application);
         validateCreateRequest(request);
 
         return contractRepository.findByApplicationId(request.applicationId())
@@ -92,7 +92,7 @@ public class ContractService {
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
         validateContractOwner(clientUserId, jobPosting.clientId());
-        validateContractApplicableStatus(application);
+        validateContractDraftableStatus(application);
 
         // 의뢰인 동의 처리
         contract.clientAgree(LocalDateTime.now(), null);
@@ -115,7 +115,7 @@ public class ContractService {
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
         validateContractOwner(clientUserId, jobPosting.clientId());
-        validateContractApplicableStatus(application);
+        validateContractNotifiableStatus(application);
         validateRequiredCount(application, jobPosting);
         validateClientAgreed(contract);
 
@@ -177,7 +177,7 @@ public class ContractService {
     }
 
     @Transactional
-    public ContractResponse rejectContract(Long modelUserId, Long contractId) {
+    public ContractResponse rejectContract(Long modelUserId, Long contractId, String rejectReason) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
@@ -189,7 +189,7 @@ public class ContractService {
 
         validateContractTargetModel(modelUserId, model.getUser().getId());
 
-        contract.reject();
+        contract.reject(rejectReason);
         application.revertToContacted(); // 거부 시 재계약 가능하도록 CONTACTED 상태로 롤백
 
         return ContractResponse.from(contract);
@@ -312,13 +312,6 @@ public class ContractService {
             return ContractResponse.from(contractRepository.save(contract));
         } catch (DataIntegrityViolationException e) {
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
-        }
-    }
-
-    private void validateContractApplicableStatus(Application application) {
-        if (application.getStatus() != ApplicationStatus.APPLIED
-                && application.getStatus() != ApplicationStatus.CONTACTED) {
-            throw new CustomException(ErrorCode.INVALID_STATUS_CHANGE);
         }
     }
 
@@ -470,6 +463,18 @@ public class ContractService {
         );
         if (jobPosting.requiredCount() != null && contracted >= jobPosting.requiredCount()) {
             throw new CustomException(ErrorCode.APPLICATION_EXCEED_REQUIRED_COUNT);
+        }
+    }
+
+    private void validateContractDraftableStatus(Application application) {
+        if (application.getStatus() != ApplicationStatus.APPLIED && application.getStatus() != ApplicationStatus.CONTACTED) {
+            throw new CustomException(ErrorCode.INVALID_STATUS_CHANGE);
+        }
+    }
+
+    private void validateContractNotifiableStatus(Application application) {
+        if (application.getStatus() != ApplicationStatus.CONTACTED) {
+            throw new CustomException(ErrorCode.INVALID_STATUS_CHANGE);
         }
     }
 }
