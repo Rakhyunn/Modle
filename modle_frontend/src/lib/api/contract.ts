@@ -46,9 +46,11 @@ export type ContractViewResponse = {
 export type ContractStatusResponse = {
   contractId: number;
   applicationId: number;
+  contractSent: boolean;
   status: ContractStatus;
   clientAgreed: boolean;
   modelAgreed: boolean;
+  pdfUrl: string | null;
   shootingAvailable: boolean;
 };
 

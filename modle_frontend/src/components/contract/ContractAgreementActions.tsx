@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   agreeContract,
+  getContractStatus,
   rejectContract,
   viewContract,
   type ContractStatus,
@@ -13,11 +14,13 @@ import {
 type ContractAgreementActionsProps = {
   contractId: number;
   initialStatus: ContractStatus;
+  applicationId?: number;
 };
 
 export function ContractAgreementActions({
   contractId,
   initialStatus,
+  applicationId,
 }: ContractAgreementActionsProps) {
   const { user, isLoading } = useAuth();
   const [status, setStatus] = useState<ContractStatus>(initialStatus);
@@ -31,6 +34,7 @@ export function ContractAgreementActions({
       return;
     }
 
+    const currentApplicationId = applicationId;
     let ignore = false;
 
     async function loadContractStatus() {
@@ -38,7 +42,9 @@ export function ContractAgreementActions({
       setMessage("");
 
       try {
-        const contract = await viewContract(contractId);
+        const contract = currentApplicationId
+          ? await getContractStatus(currentApplicationId)
+          : await viewContract(contractId);
 
         if (ignore) {
           return;
@@ -65,7 +71,7 @@ export function ContractAgreementActions({
     return () => {
       ignore = true;
     };
-  }, [contractId, isLoading, user?.role]);
+  }, [applicationId, contractId, isLoading, user?.role]);
 
   if (isLoading || user?.role !== "MODEL") {
     return null;

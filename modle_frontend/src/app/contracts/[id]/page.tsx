@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ContractAgreementActions } from "@/components/contract/ContractAgreementActions";
 import { ContractNotifyButton } from "@/components/contract/ContractNotifyButton";
+import { ContractStatusOverview } from "@/components/contract/ContractStatusOverview";
 import type { ContractStatus } from "@/lib/api/contract";
 
 type ContractDetailPageProps = {
@@ -43,6 +44,7 @@ export default async function ContractDetailPage({
   const { id } = await params;
   const query = await searchParams;
   const contractId = Number(id);
+  const applicationId = Number(query.applicationId ?? "");
   const contractStatus = resolveContractStatus(query.status);
   const pdfUrl = query.pdfUrl?.trim() ?? "";
 
@@ -155,11 +157,13 @@ export default async function ContractDetailPage({
                   <>
                     <ContractNotifyButton
                       contractId={contractId}
+                      applicationId={Number.isFinite(applicationId) ? applicationId : undefined}
                       initialStatus={contractStatus}
                       initialPdfUrl={pdfUrl}
                     />
                     <ContractAgreementActions
                       contractId={contractId}
+                      applicationId={Number.isFinite(applicationId) ? applicationId : undefined}
                       initialStatus={contractStatus}
                     />
                   </>
@@ -171,6 +175,14 @@ export default async function ContractDetailPage({
                 />
               </div>
             </section>
+
+            {Number.isFinite(applicationId) ? (
+              <ContractStatusOverview
+                applicationId={applicationId}
+                initialStatus={contractStatus}
+                initialPdfUrl={pdfUrl}
+              />
+            ) : null}
           </aside>
         </section>
       </div>
