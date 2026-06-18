@@ -26,6 +26,7 @@ export type ContractResponse = {
   memo: string | null;
   pdfUrl: string | null;
   signedPdfUrl: string | null;
+  rejectReason: string | null;
   status: ContractStatus;
 };
 
@@ -51,6 +52,7 @@ export type ContractStatusResponse = {
   clientAgreed: boolean;
   modelAgreed: boolean;
   pdfUrl: string | null;
+  rejectReason: string | null;
   shootingAvailable: boolean;
 };
 
@@ -128,11 +130,16 @@ export async function agreeContract(
 
 export async function rejectContract(
   contractId: number,
+  rejectReason: string,
 ): Promise<ContractResponse> {
   const response = await authenticatedFetch(
     `${API_BASE_URL}/api/v1/contracts/${contractId}/reject`,
     {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ rejectReason }),
     },
   );
 

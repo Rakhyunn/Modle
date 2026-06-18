@@ -24,6 +24,7 @@ export function ContractAgreementActions({
 }: ContractAgreementActionsProps) {
   const { user, isLoading } = useAuth();
   const [status, setStatus] = useState<ContractStatus>(initialStatus);
+  const [rejectReason, setRejectReason] = useState("");
   const [requestStatus, setRequestStatus] = useState<
     "idle" | "loading" | "agree" | "reject" | "success" | "error"
   >("idle");
@@ -106,12 +107,19 @@ export function ContractAgreementActions({
   };
 
   const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      setRequestStatus("error");
+      setMessage("거절 사유를 입력해 주세요.");
+      return;
+    }
+
     setRequestStatus("reject");
     setMessage("");
 
     try {
-      const contract = await rejectContract(contractId);
+      const contract = await rejectContract(contractId, rejectReason.trim());
       setStatus(contract.status);
+      setRejectReason("");
       setRequestStatus("success");
       setMessage("계약을 거절했습니다.");
     } catch (error) {
@@ -124,6 +132,26 @@ export function ContractAgreementActions({
 
   return (
     <div className="space-y-3">
+      {canRespond ? (
+        <div className="space-y-2">
+          <label
+            htmlFor={`contract-reject-reason-${contractId}`}
+            className="block text-[13px] font-semibold leading-5 text-ink"
+          >
+            거절 사유
+          </label>
+          <textarea
+            id={`contract-reject-reason-${contractId}`}
+            value={rejectReason}
+            onChange={(event) => setRejectReason(event.target.value)}
+            disabled={isSubmitting}
+            maxLength={500}
+            className="min-h-24 w-full resize-y rounded-md border border-hairline bg-canvas-soft px-3 py-3 text-[14px] leading-6 text-ink outline-none transition focus:border-ink disabled:text-mute"
+            placeholder="거절 사유를 입력해 주세요."
+          />
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"

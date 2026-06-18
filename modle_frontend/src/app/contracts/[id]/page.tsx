@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ContractAgreementActions } from "@/components/contract/ContractAgreementActions";
 import { ContractNotifyButton } from "@/components/contract/ContractNotifyButton";
 import { ContractStatusOverview } from "@/components/contract/ContractStatusOverview";
@@ -34,7 +32,7 @@ const CONTRACT_TYPE_LABEL: Record<string, string> = {
 const PAY_TYPE_LABEL: Record<string, string> = {
   CASH: "현금",
   SERVICE: "서비스 제공",
-  FREE: "재능기부",
+  FREE: "무상",
 };
 
 export default async function ContractDetailPage({
@@ -71,10 +69,10 @@ export default async function ContractDetailPage({
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
               <h1 className="text-[28px] font-bold leading-9 text-ink">
-                계약서 초안 상세
+                계약서 상세
               </h1>
               <p className="text-[15px] leading-6 text-body">
-                계약서 ID #{id}가 {contractStatus} 상태로 저장되었습니다.
+                계약서 ID #{id}가 {contractStatus} 상태입니다.
               </p>
             </div>
             <span className="inline-flex h-8 w-fit items-center gap-2 rounded-full bg-canvas-soft px-3 text-[13px] font-semibold leading-5 text-body">
@@ -84,19 +82,19 @@ export default async function ContractDetailPage({
           </div>
           {isCreatedFromDraft ? (
             <div className="mt-4 rounded-xl bg-success-soft px-4 py-3 text-[14px] leading-6 text-success">
-              계약 작성 화면에서 입력한 정보를 기준으로 초안이 생성되었습니다.
-              PDF를 생성하고 내용을 확인한 뒤 모델에게 발송할 수 있습니다.
+              계약서 작성 화면에서 입력한 정보로 초안을 생성했습니다. PDF를
+              생성한 뒤 내용을 확인하고 모델에게 발송하시면 됩니다.
             </div>
           ) : (
             <div className="mt-4 rounded-xl bg-canvas-soft px-4 py-3 text-[14px] leading-6 text-body">
-              상세 조회 API 연동 전 임시 상세 화면입니다. 저장 직후 진입하면
-              방금 입력한 요약 정보를 함께 확인할 수 있습니다.
+              계약 상태 조회 API와 연결된 상세 화면입니다. 직접 진입한 경우에도
+              현재 상태와 PDF 정보를 확인할 수 있습니다.
             </div>
           )}
         </header>
 
         <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-2xl border border-hairline bg-surface p-6">
+          <section className="rounded-2xl border border-hairline bg-surface p-6">
             <div className="grid gap-5 md:grid-cols-2">
               <DetailRow
                 label="지원 ID"
@@ -134,7 +132,7 @@ export default async function ContractDetailPage({
                 fullWidth
               />
             </div>
-          </div>
+          </section>
 
           <aside className="space-y-6">
             <section className="rounded-2xl border border-hairline bg-surface p-6">
@@ -143,36 +141,39 @@ export default async function ContractDetailPage({
               </h2>
               <ul className="mt-4 space-y-3 text-[14px] leading-6 text-body">
                 <li>1. 계약서 PDF를 생성합니다.</li>
-                <li>2. 생성된 PDF를 미리보기로 검토합니다.</li>
-                <li>3. 문제가 없으면 모델에게 계약서를 발송합니다.</li>
+                <li>2. 생성된 PDF 내용을 확인합니다.</li>
+                <li>3. 모델에게 계약서를 발송하거나 계약에 응답합니다.</li>
               </ul>
             </section>
 
             <section className="rounded-2xl border border-hairline bg-surface p-6">
               <h2 className="text-[18px] font-semibold leading-7 text-ink">
-                빠른 이동
+                계약 액션
               </h2>
               <div className="mt-4 flex flex-col gap-3">
                 {Number.isFinite(contractId) ? (
                   <>
                     <ContractNotifyButton
                       contractId={contractId}
-                      applicationId={Number.isFinite(applicationId) ? applicationId : undefined}
+                      applicationId={
+                        Number.isFinite(applicationId)
+                          ? applicationId
+                          : undefined
+                      }
                       initialStatus={contractStatus}
                       initialPdfUrl={pdfUrl}
                     />
                     <ContractAgreementActions
                       contractId={contractId}
-                      applicationId={Number.isFinite(applicationId) ? applicationId : undefined}
+                      applicationId={
+                        Number.isFinite(applicationId)
+                          ? applicationId
+                          : undefined
+                      }
                       initialStatus={contractStatus}
                     />
                   </>
                 ) : null}
-                <ActionLink href="/contracts/new" label="새 계약서 다시 작성" />
-                <ActionLink
-                  href={`/contracts/${id}`}
-                  label="현재 상세 주소 유지"
-                />
               </div>
             </section>
 
@@ -225,15 +226,4 @@ function resolveContractStatus(status?: string): ContractStatus {
   return statuses.includes(status as ContractStatus)
     ? (status as ContractStatus)
     : "DRAFT";
-}
-
-function ActionLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex h-11 items-center justify-center rounded-md border border-hairline bg-canvas-soft px-4 text-[14px] font-semibold text-ink transition hover:border-hairline-strong"
-    >
-      {label}
-    </Link>
-  );
 }
