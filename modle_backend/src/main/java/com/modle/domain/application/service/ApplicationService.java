@@ -72,19 +72,6 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.APPLICATION_ALREADY_EXISTS);
         }
 
-        long contracted = applicationRepository.countByJobPostingIdAndStatusIn(
-                jobPostingId,
-                List.of(
-                        ApplicationStatus.CONTRACT_SENT,
-                        ApplicationStatus.SHOOTING,
-                        ApplicationStatus.COMPLETED
-                )
-        );
-
-        if(jobPosting.getRequiredCount() != null && contracted >= jobPosting.getRequiredCount()) {
-            throw new CustomException(ErrorCode.APPLICATION_EXCEED_REQUIRED_COUNT);
-        }
-
         Application application = Application.builder()
                 .jobPostingId(jobPostingId)
                 .modelId(modelId)

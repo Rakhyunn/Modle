@@ -74,7 +74,6 @@ public class ContractService {
 
         validateContractOwner(clientUserId, jobPosting.clientId());
         validateContractApplicableStatus(application);
-        validateRequiredCount(application, jobPosting);
         validateCreateRequest(request);
 
         return contractRepository.findByApplicationId(request.applicationId())
@@ -94,9 +93,6 @@ public class ContractService {
 
         validateContractOwner(clientUserId, jobPosting.clientId());
         validateContractApplicableStatus(application);
-
-        // N명 초과 검증
-        validateRequiredCount(application, jobPosting);
 
         // 의뢰인 동의 처리
         contract.clientAgree(LocalDateTime.now(), null);
@@ -174,7 +170,7 @@ public class ContractService {
         if (contract.isBothAgreed()) {
             contract.confirm(LocalDateTime.now());
             application.shoot();
-            jobPostingService.markShooting(application.getJobPostingId());
+            updateJobPostingAfterAgreement(application);
         }
 
         return ContractResponse.from(contract);
@@ -439,6 +435,27 @@ public class ContractService {
     private void validateContractTargetModel(Long modelUserId, Long contractModelId) {
         if (!contractModelId.equals(modelUserId)) {
             throw new CustomException(ErrorCode.CONTRACT_FORBIDDEN);
+        }
+    }
+
+    private void updateJobPostingAfterAgreement(Application application) {
+        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+
+        if (jobPosting.requiredCount() == null) {
+            jobPostingService.markShooting(application.getJobPostingId());
+            return;
+        }
+
+        long confirmedCount = applicationRepository.countByJobPostingIdAndStatusIn(
+                application.getJobPostingId(),
+                List.of(
+                        ApplicationStatus.SHOOTING,
+                        ApplicationStatus.COMPLETED
+                )
+        );
+
+        if (confirmedCount >= jobPosting.requiredCount()) {
+            jobPostingService.markShooting(application.getJobPostingId());
         }
     }
 
