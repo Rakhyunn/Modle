@@ -68,34 +68,17 @@ public class ContractService {
 
     @Transactional
     public ContractResponse createContract(Long clientUserId, ContractCreateRequest request) {
-        validateDuplicateContract(request.applicationId());
-
         Application application = applicationService.getApplication(request.applicationId());
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
         validateContractOwner(clientUserId, jobPosting.clientId());
         validateContractApplicableStatus(application);
+        validateRequiredCount(application, jobPosting);
         validateCreateRequest(request);
 
-        Contract contract = Contract.createDraft(
-                request.applicationId(),
-                request.contractType(),
-                request.shootStartAt(),
-                request.shootEndAt(),
-                request.location(),
-                request.payment(),
-                request.payType(),
-                request.usageScope(),
-                request.memo(),
-                request.pdfUrl()
-        );
-        try {
-            Contract savedContract = contractRepository.save(contract);
-            return ContractResponse.from(savedContract);
-        } catch (DataIntegrityViolationException e) {
-            // applicationId의 unique 제약 조건 위반 시 예외 처리
-            throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
-        }
+        return contractRepository.findByApplicationId(request.applicationId())
+                .map(existingContract -> rewriteRejectedContract(existingContract, request))
+                .orElseGet(() -> createNewContract(request));
     }
 
     @Transactional
@@ -136,6 +119,8 @@ public class ContractService {
 
         validateContractOwner(clientUserId, jobPosting.clientId());
         validateContractApplicableStatus(application);
+        validateRequiredCount(application, jobPosting);
+        validateClientAgreed(contract);
 
         Model model = modelRepository.findById(application.getModelId())
                 .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
@@ -207,6 +192,7 @@ public class ContractService {
         validateContractTargetModel(modelUserId, model.getUser().getId());
 
         contract.reject();
+        application.revertToContacted(); // 거부 시 재계약 가능하도록 CONTACTED 상태로 롤백
 
         return ContractResponse.from(contract);
     }
@@ -279,8 +265,52 @@ public class ContractService {
         }
     }
 
-    private void validateDuplicateContract(Long applicationId) {
-        if (contractRepository.existsByApplicationId(applicationId)) {
+    private void validateClientAgreed(Contract contract) {
+        if (!Boolean.TRUE.equals(contract.getClientAgreed())) {
+            throw new CustomException(ErrorCode.CONTRACT_CLIENT_AGREEMENT_REQUIRED);
+        }
+    }
+
+    private ContractResponse rewriteRejectedContract(
+            Contract existingContract,
+            ContractCreateRequest request
+    ) {
+        if (existingContract.getStatus() != ContractStatus.REJECTED) {
+            throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
+        }
+
+        existingContract.rewriteDraft(
+                request.contractType(),
+                request.shootStartAt(),
+                request.shootEndAt(),
+                request.location(),
+                request.payment(),
+                request.payType(),
+                request.usageScope(),
+                request.memo(),
+                request.pdfUrl()
+        );
+
+        return ContractResponse.from(existingContract);
+    }
+
+    private ContractResponse createNewContract(ContractCreateRequest request) {
+        Contract contract = Contract.createDraft(
+                request.applicationId(),
+                request.contractType(),
+                request.shootStartAt(),
+                request.shootEndAt(),
+                request.location(),
+                request.payment(),
+                request.payType(),
+                request.usageScope(),
+                request.memo(),
+                request.pdfUrl()
+        );
+
+        try {
+            return ContractResponse.from(contractRepository.save(contract));
+        } catch (DataIntegrityViolationException e) {
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
         }
     }
@@ -417,7 +447,7 @@ public class ContractService {
                         ApplicationStatus.COMPLETED
                 )
         );
-        if (contracted >= jobPosting.requiredCount()) {
+        if (jobPosting.requiredCount() != null && contracted >= jobPosting.requiredCount()) {
             throw new CustomException(ErrorCode.APPLICATION_EXCEED_REQUIRED_COUNT);
         }
     }

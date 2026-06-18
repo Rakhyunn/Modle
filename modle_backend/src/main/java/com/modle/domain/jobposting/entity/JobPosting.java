@@ -49,8 +49,8 @@ public class JobPosting extends BaseEntity {
     @Column(nullable = false)
     private RequiredSex requiredSex;
 
-    @Column(nullable = false)
-    private Integer requiredCount;
+    @Column
+    private Integer requiredCount; // null이면 모집 인원 제한 없음
 
     @Column
     private Integer ageMin;

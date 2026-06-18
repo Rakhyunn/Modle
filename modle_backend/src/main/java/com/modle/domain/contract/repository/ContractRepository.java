@@ -8,7 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface ContractRepository extends JpaRepository<Contract, Long> {
-    boolean existsByApplicationId(Long applicationId);
-
     Optional<Contract> findByApplicationId(Long applicationId);
 }

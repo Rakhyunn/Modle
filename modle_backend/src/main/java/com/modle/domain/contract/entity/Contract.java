@@ -115,6 +115,39 @@ public class Contract extends BaseEntity {
         this.pdfUrl = pdfUrl;
     }
 
+    public void rewriteDraft(
+            ContractType contractType,
+            LocalDateTime shootStartAt,
+            LocalDateTime shootEndAt,
+            String location,
+            BigDecimal payment,
+            PayType payType,
+            String usageScope,
+            String memo,
+            String pdfUrl
+    ) {
+        this.contractType = contractType;
+        this.shootStartAt = shootStartAt;
+        this.shootEndAt = shootEndAt;
+        this.location = location;
+        this.payment = payment;
+        this.payType = payType;
+        this.usageScope = usageScope;
+        this.memo = memo;
+        this.pdfUrl = pdfUrl;
+        this.signedPdfUrl = null;
+        this.status = ContractStatus.DRAFT;
+        this.clientAgreed = false;
+        this.modelAgreed = false;
+        this.clientAgreedAt = null;
+        this.modelAgreedAt = null;
+        this.clientIp = null;
+        this.modelIp = null;
+        this.viewedAt = null;
+        this.notifiedAt = null;
+        this.confirmedAt = null;
+    }
+
     public void notifyModel(LocalDateTime notifiedAt) {
         this.status = ContractStatus.NOTIFIED;
         this.notifiedAt = notifiedAt;

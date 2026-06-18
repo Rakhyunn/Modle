@@ -72,6 +72,19 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.APPLICATION_ALREADY_EXISTS);
         }
 
+        long contracted = applicationRepository.countByJobPostingIdAndStatusIn(
+                jobPostingId,
+                List.of(
+                        ApplicationStatus.CONTRACT_SENT,
+                        ApplicationStatus.SHOOTING,
+                        ApplicationStatus.COMPLETED
+                )
+        );
+
+        if(jobPosting.getRequiredCount() != null && contracted >= jobPosting.getRequiredCount()) {
+            throw new CustomException(ErrorCode.APPLICATION_EXCEED_REQUIRED_COUNT);
+        }
+
         Application application = Application.builder()
                 .jobPostingId(jobPostingId)
                 .modelId(modelId)
@@ -144,7 +157,9 @@ public class ApplicationService {
     }
 
     // MATCH-005: 내가 지원한 공고 목록 (모델)
-    public List<MyApplicationResponse> getMyApplications(Long modelId) {
+    public List<MyApplicationResponse> getMyApplications(Long userId) {
+        Long modelId = findModelIdByUserId(userId);
+
         List<Application> applications =
                 applicationRepository.findByModelIdAndStatusNotOrderByCreatedDateDesc(
                         modelId, ApplicationStatus.APPLICATION_CANCELLED);
