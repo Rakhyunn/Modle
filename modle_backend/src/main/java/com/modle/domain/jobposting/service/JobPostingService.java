@@ -9,13 +9,12 @@ import com.modle.domain.jobposting.dto.response.*;
 import com.modle.domain.jobposting.entity.type.Category;
 import com.modle.domain.jobposting.entity.JobPosting;
 import com.modle.domain.jobposting.entity.type.JobPostingStatus;
-import com.modle.domain.jobposting.entity.type.Region;
+import com.modle.global.entity.type.Region;
 import com.modle.domain.jobposting.entity.type.ViewerType;
 import com.modle.global.exception.CustomException;
 import com.modle.global.exception.ErrorCode;
 import com.modle.domain.jobposting.event.JobPostingCreatedEvent;
 import com.modle.domain.jobposting.repository.JobPostingRepository;
-import com.modle.domain.jobposting.repository.JobPostingTemplateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -31,17 +30,8 @@ import java.util.List;
 public class JobPostingService {
 
     private final JobPostingRepository jobPostingRepository;
-    private final JobPostingTemplateRepository jobPostingTemplateRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ApplicationRepository applicationRepository;
-
-
-    // JOB-001: 카테고리별 공고 템플릿 목록을 반환한다.
-    public List<JobPostingTemplateResponse> getTemplatesByCategory(String category) {
-        return jobPostingTemplateRepository.findByCategory(category).stream()
-                .map(JobPostingTemplateResponse::from)
-                .toList();
-    }
 
 
     // JOB-002: 공고를 저장하고(상태=모집 중) AI 모델 추천을 비동기로 트리거한다.
