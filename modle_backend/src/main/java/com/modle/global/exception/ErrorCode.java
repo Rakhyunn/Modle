@@ -83,6 +83,7 @@ public enum ErrorCode {
     APPLICATION_CONTACT_FORBIDDEN(HttpStatus.FORBIDDEN, "403-11", "해당 공고의 작성자만 컨택할 수 있습니다."),
     APPLICATION_ALREADY_CONTACTED(HttpStatus.CONFLICT, "409-7", "이미 컨택된 지원입니다."),
     APPLICATION_CONTACT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "400-14", "지원 완료(APPLIED) 상태에서만 컨택할 수 있습니다."),
+    APPLICATION_EXCEED_REQUIRED_COUNT(HttpStatus.BAD_REQUEST, "400-15", "모집 인원을 초과했습니다."),
 
     // 잘못된 접근
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "403-6", "권한이 없습니다."),

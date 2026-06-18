@@ -2,6 +2,7 @@ package com.modle.domain.contract.service;
 
 import com.modle.domain.application.entity.Application;
 import com.modle.domain.application.entity.type.ApplicationStatus;
+import com.modle.domain.application.repository.ApplicationRepository;
 import com.modle.domain.application.service.ApplicationService;
 import com.modle.domain.contract.dto.request.ContractCreateRequest;
 import com.modle.domain.contract.dto.request.ContractPdfCreateRequest;
@@ -49,6 +50,7 @@ public class ContractService {
 
     private final ContractRepository contractRepository;
     private final ContractTemplateRepository contractTemplateRepository;
+    private final ApplicationRepository applicationRepository;
 
     private final GcsService gcsService;
     private final ContractPdfGenerator contractPdfGenerator;
@@ -108,6 +110,12 @@ public class ContractService {
 
         validateContractOwner(clientUserId, jobPosting.clientId());
         validateContractApplicableStatus(application);
+
+        // N명 초과 검증
+        validateRequiredCount(application, jobPosting);
+
+        // 의뢰인 동의 처리
+        contract.clientAgree(LocalDateTime.now(), null);
 
         if (contract.getContractType() == ContractType.FILE) {
             return handleFileContract(contract);
@@ -329,6 +337,19 @@ public class ContractService {
     private void validateContractTargetModel(Long modelUserId, Long contractModelId) {
         if (!contractModelId.equals(modelUserId)) {
             throw new CustomException(ErrorCode.CONTRACT_FORBIDDEN);
+        }
+    }
+    private void validateRequiredCount(Application application, JobPostingResponse jobPosting) {
+        long contracted = applicationRepository.countByJobPostingIdAndStatusIn(
+                application.getJobPostingId(),
+                List.of(
+                        ApplicationStatus.CONTRACT_SENT,
+                        ApplicationStatus.SHOOTING,
+                        ApplicationStatus.COMPLETED
+                )
+        );
+        if (contracted >= jobPosting.requiredCount()) {
+            throw new CustomException(ErrorCode.APPLICATION_EXCEED_REQUIRED_COUNT);
         }
     }
 }

@@ -138,3 +138,5 @@ public class JobPosting extends BaseEntity {
         this.status = newStatus;
     }
 }
+
+
