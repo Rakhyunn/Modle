@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   createContractPdf,
+  formatContractStatus,
   getContractStatus,
   notifyContract,
   type ContractStatus,
@@ -143,7 +144,7 @@ export function ContractNotifyButton({
         </button>
       ) : (
         <p className="rounded-md bg-canvas-soft px-3 py-2 text-[13px] leading-5 text-body">
-          현재 상태: {status}
+          현재 상태: {formatContractStatus(status)}
         </p>
       )}
 

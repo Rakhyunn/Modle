@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import {
+  formatContractStatus,
   getContractStatus,
   type ContractStatus,
   type ContractStatusResponse,
@@ -72,10 +73,7 @@ export function ContractStatusOverview({
       </h2>
 
       <div className="mt-4 grid gap-3">
-        <StatusRow
-          label="계약 발송"
-          value={contractStatus.contractSent ? "완료" : "미발송"}
-        />
+        <StatusRow label="계약 발송" value={contractStatus.contractSent ? "완료" : "미발송"} />
         <StatusRow
           label="클라이언트 동의"
           value={contractStatus.clientAgreed ? "완료" : "대기"}
@@ -84,7 +82,10 @@ export function ContractStatusOverview({
           label="모델 동의"
           value={contractStatus.modelAgreed ? "완료" : "대기"}
         />
-        <StatusRow label="계약 상태" value={contractStatus.status} />
+        <StatusRow
+          label="계약 상태"
+          value={formatContractStatus(contractStatus.status)}
+        />
         <StatusRow
           label="촬영 진행 가능"
           value={contractStatus.shootingAvailable ? "가능" : "불가"}
@@ -123,9 +124,7 @@ function StatusRow({
 }) {
   return (
     <div className="min-w-0 rounded-xl bg-canvas-soft px-4 py-3">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.3px] text-mute">
-        {label}
-      </p>
+      <p className="text-[12px] font-semibold text-mute">{label}</p>
       <p
         className={`mt-1 min-w-0 text-[14px] leading-6 text-ink ${
           breakWords ? "break-all" : ""
