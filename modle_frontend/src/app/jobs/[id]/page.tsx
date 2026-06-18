@@ -1,14 +1,15 @@
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
-import { ReportModal } from "@/components/ui/ReportModal";
 import { ClientProposalButton } from "@/components/message/ClientProposalButton";
 import { ModelCard } from "@/components/model/ModelCard";
-import { API_BASE_URL, authenticatedFetch, client } from "@/lib/api/client";
-import type { Model } from "@/types/model";
-import { STATUS_LABELS, STATUS_COLORS, STATUS_TRANSITIONS } from "@/lib/constants/jobPostingStatus";
+import { ReportModal } from "@/components/ui/ReportModal";
+import { useAuth } from "@/hooks/useAuth";
 import { checkApplyStatus, getApplicants } from "@/lib/api/application";
 import { addJobBookmark, getJobBookmarks, removeJobBookmark } from "@/lib/api/bookmark";
+import { API_BASE_URL, authenticatedFetch, client } from "@/lib/api/client";
+import { STATUS_COLORS, STATUS_LABELS, STATUS_TRANSITIONS } from "@/lib/constants/jobPostingStatus";
+import { getRegionLabel } from "@/lib/constants/region";
+import type { Model } from "@/types/model";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
@@ -466,7 +467,7 @@ export default function JobDetailPage({
               </h2>
               <dl className="mt-4 space-y-3 text-[13px] leading-5">
                 <InfoRow label="카테고리" value={detail.category} />
-                <InfoRow label="지역" value={detail.region} />
+                <InfoRow label="지역" value={getRegionLabel(detail.region)} />
                 <InfoRow
                   label="성별 조건"
                   value={

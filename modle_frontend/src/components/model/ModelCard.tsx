@@ -21,7 +21,7 @@ export function ModelCard({
 }: Props) {
   // 포트폴리오가 있으면 가장 최근 사진, 없으면 프로필 이미지, 그것도 없으면 기본 이미지
   const latestPortfolioImage =
-    (model.portfolios && model.portfolios.length > 0 && model.portfolios[model.portfolios.length - 1].imgUrl)
+    (model.portfolios && model.portfolios.length > 0 && model.portfolios[0].imgUrl)
       || model.profileImageUrl
       || '/placeholder.png';
 

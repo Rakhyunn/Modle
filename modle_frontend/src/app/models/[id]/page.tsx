@@ -4,6 +4,7 @@ import { ProfileGallery } from "@/components/model/detail/ProfileGallery";
 import { ModelBookmarkButton } from "@/components/ui/ModelBookmarkButton";
 import { ReportButton } from "@/components/ui/ReportButton";
 import { getModel } from "@/lib/api/model";
+import { getRegionLabel } from "@/lib/constants/region";
 import { notFound } from "next/navigation";
 
 export const metadata = {
@@ -68,7 +69,7 @@ export default async function ModelDetailPage({ params }: PageProps) {
               <div className="flex">
                 <span className="w-24 text-gray-500">활동 지역</span>
                 <span className="text-black font-semibold">
-                  {modelData.region || "미상"}
+                  {getRegionLabel(modelData.region)}
                 </span>
               </div>
               <div className="flex">
@@ -104,6 +105,10 @@ export default async function ModelDetailPage({ params }: PageProps) {
               </div>
             </div>
 
+            <div className="mt-6 pt-6 border-t border-gray-100 text-gray-800 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+              {modelData.introduction || "작성된 모델 소개글이 없습니다."}
+            </div>
+
             <div className="mt-8 md:mt-auto pt-8 flex gap-2">
               <ModelBookmarkButton
                 modelId={modelData.id}
@@ -131,15 +136,11 @@ export default async function ModelDetailPage({ params }: PageProps) {
               리뷰 ({modelData.reviewCount || 0})
             </div>
             <div className="flex-1 text-center py-4 font-medium text-gray-400 hover:text-black cursor-pointer transition-colors">
-              Q&A (0)
+              경력 사항
             </div>
           </div>
 
-          <div className="max-w-[800px] mx-auto mt-12 flex flex-col items-center gap-4 md:gap-8 pb-20">
-            <div className="text-center text-gray-800 leading-loose whitespace-pre-wrap mb-10 text-sm md:text-base px-4 font-medium">
-              {modelData.introduction || "작성된 모델 소개글이 없습니다."}
-            </div>
-
+          <div className="w-full mt-8 md:mt-12 flex flex-col gap-4 md:gap-8 pb-20">
             <DetailLookbook portfolios={modelData.portfolios || []} />
           </div>
         </div>
