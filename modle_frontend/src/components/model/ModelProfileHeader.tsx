@@ -1,4 +1,5 @@
-import { Model } from "@/types/model";
+
+import { Model } from '@/types/model';
 import Image from "next/image";
 
 interface Props {
@@ -10,18 +11,12 @@ export function ModelProfileHeader({ model }: Props) {
     <div className="bg-canvas-soft rounded-2xl p-6 border border-hairline shadow-sm mb-8 flex flex-col md:flex-row gap-8">
       {/* Profile Image */}
       <div className="flex-shrink-0 relative w-48 h-48 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-inner">
-        {model.profileImageUrl ? (
-          <Image
-            src={model.profileImageUrl}
-            alt={`${model.name} 프로필 이미지`}
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-            <span className="text-mute">이미지 없음</span>
-          </div>
-        )}
+        <Image
+          src={model.profileImageUrl || '/placeholder.png'}
+          alt={`${model.name} 프로필 이미지`}
+          fill
+          className="object-cover"
+        />
       </div>
 
       {/* Profile Info */}
