@@ -170,6 +170,68 @@ public class ContractService {
     }
 
     @Transactional
+    public ContractResponse agreeContract(Long modelUserId, Long contractId, String modelIp) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
+
+        validateAgreeableStatus(contract);
+
+        Application application = applicationService.getApplication(contract.getApplicationId());
+
+        Model model = modelRepository.findById(application.getModelId())
+                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+
+        validateContractTargetModel(modelUserId, model.getUser().getId());
+
+        contract.modelAgree(LocalDateTime.now(), modelIp);
+
+        if (contract.isBothAgreed()) {
+            contract.confirm(LocalDateTime.now());
+            application.shoot();
+        }
+
+        return ContractResponse.from(contract);
+    }
+
+    @Transactional
+    public ContractResponse rejectContract(Long modelUserId, Long contractId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
+
+        validateAgreeableStatus(contract);
+
+        Application application = applicationService.getApplication(contract.getApplicationId());
+        Model model = modelRepository.findById(application.getModelId())
+                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+
+        validateContractTargetModel(modelUserId, model.getUser().getId());
+
+        contract.reject();
+
+        return ContractResponse.from(contract);
+    }
+
+    public ContractResponse getContractByApplicationId(Long userId, Long applicationId) {
+        Application application = applicationService.getApplication(applicationId);
+        Model model = modelRepository.findById(application.getModelId())
+                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+
+        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+
+        boolean isModel = model.getUser().getId().equals(userId);
+        boolean isClient = jobPosting.clientId().equals(userId);
+
+        if (!isModel && !isClient) {
+            throw new CustomException(ErrorCode.CONTRACT_ACCESS_DENIED);
+        }
+
+        Contract contract = contractRepository.findByApplicationId(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
+
+        return ContractResponse.from(contract);
+    }
+
+    @Transactional
     public ContractViewResponse viewContract(Long modelUserId, Long contractId) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
@@ -201,6 +263,12 @@ public class ContractService {
 
     private void validateDraftStatus(Contract contract) {
         if (contract.getStatus() != ContractStatus.DRAFT) {
+            throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
+        }
+    }
+
+    private void validateAgreeableStatus(Contract contract) {
+        if (contract.getStatus() != ContractStatus.NOTIFIED && contract.getStatus() != ContractStatus.AGREED) {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
         }
     }
@@ -339,6 +407,7 @@ public class ContractService {
             throw new CustomException(ErrorCode.CONTRACT_FORBIDDEN);
         }
     }
+
     private void validateRequiredCount(Application application, JobPostingResponse jobPosting) {
         long contracted = applicationRepository.countByJobPostingIdAndStatusIn(
                 application.getJobPostingId(),
