@@ -6,11 +6,7 @@ import com.modle.domain.application.repository.ApplicationRepository;
 import com.modle.domain.application.service.ApplicationService;
 import com.modle.domain.contract.dto.request.ContractCreateRequest;
 import com.modle.domain.contract.dto.request.ContractPdfCreateRequest;
-import com.modle.domain.contract.dto.response.ContractPdfResponse;
-import com.modle.domain.contract.dto.response.ContractResponse;
-import com.modle.domain.contract.dto.response.ContractStatusResponse;
-import com.modle.domain.contract.dto.response.ContractTemplateResponse;
-import com.modle.domain.contract.dto.response.ContractViewResponse;
+import com.modle.domain.contract.dto.response.*;
 import com.modle.domain.contract.entity.Contract;
 import com.modle.domain.contract.entity.type.ContractStatus;
 import com.modle.domain.contract.entity.type.ContractType;
@@ -77,7 +73,7 @@ public class ContractService {
         validateCreateRequest(request);
 
         return contractRepository.findByApplicationId(request.applicationId())
-                .map(existingContract -> rewriteRejectedContract(existingContract, request))
+                .map(existingContract -> rewriteDraftableContract(existingContract, request))
                 .orElseGet(() -> createNewContract(request));
     }
 
@@ -195,6 +191,22 @@ public class ContractService {
         return ContractResponse.from(contract);
     }
 
+    public ContractDraftResponse getDraftContract(Long clientUserId, Long applicationId) {
+        Application application = applicationService.getApplication(applicationId);
+        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+
+        validateContractOwner(clientUserId, jobPosting.clientId());
+
+        Contract contract = contractRepository.findByApplicationId(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
+
+        if (contract.getStatus() != ContractStatus.DRAFT) {
+            throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
+        }
+
+        return ContractDraftResponse.from(contract);
+    }
+
     public ContractStatusResponse getContractByApplicationId(Long userId, Long applicationId) {
         Application application = applicationService.getApplication(applicationId);
         Model model = modelRepository.findById(application.getModelId())
@@ -271,11 +283,12 @@ public class ContractService {
         }
     }
 
-    private ContractResponse rewriteRejectedContract(
+    private ContractResponse rewriteDraftableContract(
             Contract existingContract,
             ContractCreateRequest request
     ) {
-        if (existingContract.getStatus() != ContractStatus.REJECTED) {
+        if (existingContract.getStatus() != ContractStatus.REJECTED
+                && existingContract.getStatus() != ContractStatus.DRAFT) {
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
         }
 
