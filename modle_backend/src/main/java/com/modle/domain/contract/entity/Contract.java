@@ -121,8 +121,33 @@ public class Contract extends BaseEntity {
     }
 
     public void markViewedAt(LocalDateTime viewedAt) {
-        if(this.viewedAt == null) {
+        if (this.viewedAt == null) {
             this.viewedAt = viewedAt;
         }
+    }
+
+    public void clientAgree(LocalDateTime agreedAt, String ip) {
+        this.clientAgreed = true;
+        this.clientAgreedAt = agreedAt;
+        this.clientIp = ip;
+    }
+
+    public void modelAgree(LocalDateTime agreedAt, String ip) {
+        this.modelAgreed = true;
+        this.modelAgreedAt = agreedAt;
+        this.modelIp = ip;
+    }
+
+    public void confirm(LocalDateTime confirmedAt) {
+        this.status = ContractStatus.CONFIRMED;
+        this.confirmedAt = confirmedAt;
+    }
+
+    public void reject() {
+        this.status = ContractStatus.REJECTED;
+    }
+
+    public boolean isBothAgreed() {
+        return Boolean.TRUE.equals(this.clientAgreed) && Boolean.TRUE.equals(this.modelAgreed);
     }
 }
