@@ -8,6 +8,7 @@ import com.modle.domain.contract.dto.request.ContractCreateRequest;
 import com.modle.domain.contract.dto.request.ContractPdfCreateRequest;
 import com.modle.domain.contract.dto.response.ContractPdfResponse;
 import com.modle.domain.contract.dto.response.ContractResponse;
+import com.modle.domain.contract.dto.response.ContractStatusResponse;
 import com.modle.domain.contract.dto.response.ContractTemplateResponse;
 import com.modle.domain.contract.dto.response.ContractViewResponse;
 import com.modle.domain.contract.entity.Contract;
@@ -173,6 +174,7 @@ public class ContractService {
         if (contract.isBothAgreed()) {
             contract.confirm(LocalDateTime.now());
             application.shoot();
+            jobPostingService.markShooting(application.getJobPostingId());
         }
 
         return ContractResponse.from(contract);
@@ -197,7 +199,7 @@ public class ContractService {
         return ContractResponse.from(contract);
     }
 
-    public ContractResponse getContractByApplicationId(Long userId, Long applicationId) {
+    public ContractStatusResponse getContractByApplicationId(Long userId, Long applicationId) {
         Application application = applicationService.getApplication(applicationId);
         Model model = modelRepository.findById(application.getModelId())
                 .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
@@ -214,7 +216,7 @@ public class ContractService {
         Contract contract = contractRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        return ContractResponse.from(contract);
+        return ContractStatusResponse.from(contract, application);
     }
 
     @Transactional
@@ -254,7 +256,9 @@ public class ContractService {
     }
 
     private void validateAgreeableStatus(Contract contract) {
-        if (contract.getStatus() != ContractStatus.NOTIFIED && contract.getStatus() != ContractStatus.AGREED) {
+        if (contract.getStatus() != ContractStatus.NOTIFIED
+                && contract.getStatus() != ContractStatus.VIEWED
+                && contract.getStatus() != ContractStatus.AGREED) {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
         }
     }

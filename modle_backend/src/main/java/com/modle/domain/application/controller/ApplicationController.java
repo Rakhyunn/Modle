@@ -6,7 +6,7 @@ import com.modle.domain.application.dto.response.ApplicationResponse;
 import com.modle.domain.application.dto.response.ContactResponse;
 import com.modle.domain.application.dto.response.MyApplicationResponse;
 import com.modle.domain.application.service.ApplicationService;
-import com.modle.domain.contract.dto.response.ContractResponse;
+import com.modle.domain.contract.dto.response.ContractStatusResponse;
 import com.modle.domain.contract.service.ContractService;
 import com.modle.global.auth.SecurityUser;
 import com.modle.global.response.ApiResponse;
@@ -101,7 +101,7 @@ public class ApplicationController {
     // MATCH-011: 지원 건의 계약 상태를 조회한다 (의뢰인 또는 해당 지원의 모델).
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/applications/{id}/contract-status")
-    public ApiResponse<ContractResponse> getContractStatus(
+    public ApiResponse<ContractStatusResponse> getContractStatus(
             @PathVariable Long id,
             @AuthenticationPrincipal SecurityUser securityUser) {
         return ApiResponse.ok("계약 상태 조회 성공", contractService.getContractByApplicationId(securityUser.getId(), id));
