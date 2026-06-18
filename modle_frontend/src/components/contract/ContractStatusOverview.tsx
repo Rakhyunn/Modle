@@ -66,7 +66,7 @@ export function ContractStatusOverview({
   }, [applicationId]);
 
   return (
-    <section className="rounded-2xl border border-hairline bg-surface p-6">
+    <section className="min-w-0 rounded-2xl border border-hairline bg-surface p-6">
       <h2 className="text-[18px] font-semibold leading-7 text-ink">
         계약 상태
       </h2>
@@ -122,13 +122,13 @@ function StatusRow({
   breakWords?: boolean;
 }) {
   return (
-    <div className="rounded-xl bg-canvas-soft px-4 py-3">
+    <div className="min-w-0 rounded-xl bg-canvas-soft px-4 py-3">
       <p className="text-[12px] font-semibold uppercase tracking-[0.3px] text-mute">
         {label}
       </p>
       <p
-        className={`mt-1 text-[14px] leading-6 text-ink ${
-          breakWords ? "break-words" : ""
+        className={`mt-1 min-w-0 text-[14px] leading-6 text-ink ${
+          breakWords ? "break-all" : ""
         }`}
       >
         {value}

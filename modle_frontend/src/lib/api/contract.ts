@@ -39,8 +39,18 @@ export type ContractPdfResponse = {
 export type ContractViewResponse = {
   id: number;
   applicationId: number;
+  contractType: "TEMPLATE" | "FILE";
+  shootStartAt: string;
+  shootEndAt: string;
+  location: string;
+  payment: number;
+  payType: "CASH" | "SERVICE" | "FREE";
+  usageScope: string;
+  memo: string | null;
   status: ContractStatus;
   pdfUrl: string | null;
+  signedPdfUrl: string | null;
+  rejectReason: string | null;
   viewedAt: string | null;
 };
 
