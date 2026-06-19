@@ -1,6 +1,5 @@
 package com.modle.domain.jobposting.service;
 
-import com.modle.domain.application.entity.Application;
 import com.modle.domain.application.entity.type.ApplicationStatus;
 import com.modle.domain.application.repository.ApplicationRepository;
 import com.modle.domain.jobposting.dto.request.JobPostingCreateRequest;
@@ -10,12 +9,6 @@ import com.modle.domain.jobposting.dto.response.*;
 import com.modle.domain.jobposting.entity.JobPosting;
 import com.modle.domain.jobposting.entity.type.Category;
 import com.modle.domain.jobposting.entity.type.JobPostingStatus;
-import com.modle.domain.jobposting.entity.type.ViewerType;
-import com.modle.domain.jobposting.event.JobPostingCreatedEvent;
-import com.modle.domain.jobposting.repository.JobPostingRepository;
-import com.modle.global.entity.type.Region;
-import com.modle.global.exception.CustomException;
-import com.modle.global.exception.ErrorCode;
 import com.modle.domain.jobposting.entity.type.ViewerType;
 import com.modle.domain.jobposting.event.JobPostingCreatedEvent;
 import com.modle.domain.jobposting.repository.JobPostingRepository;
@@ -167,10 +160,6 @@ public class JobPostingService {
 
         jobPosting.updateStatus(request.status());
 
-        if (request.status() == JobPostingStatus.COMPLETED) {
-            completeApplicationsByJobPosting(jobPosting.getId());
-        }
-        // TODO(지원 도메인): SHOOTING 전환 시 해당 공고의 지원 비활성화 처리
         messageService.sendStatusChangeNotifications(jobPostingId, clientId, request.status(), request.reason());
         return JobPostingResponse.from(jobPosting);
     }
@@ -281,15 +270,5 @@ public class JobPostingService {
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POSTING_NOT_FOUND));
 
         jobPosting.updateStatus(JobPostingStatus.SHOOTING);
-    }
-
-    private void completeApplicationsByJobPosting(Long jobPostingId) {
-        List<Application> applications =
-                applicationRepository.findByJobPostingIdAndStatus(
-                        jobPostingId,
-                        ApplicationStatus.SHOOTING
-                );
-
-        applications.forEach(Application::complete);
     }
 }

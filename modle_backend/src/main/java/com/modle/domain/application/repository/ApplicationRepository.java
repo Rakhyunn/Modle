@@ -51,6 +51,4 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByModelIdOrderByCreatedDateDesc(Long modelId);
 
     List<Application> findByJobPostingIdInOrderByCreatedDateDesc(List<Long> jobPostingIds);
-
-    List<Application> findByJobPostingIdAndStatus(Long jobPostingId, ApplicationStatus status);
 }
