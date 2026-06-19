@@ -27,16 +27,23 @@ import com.modle.global.exception.ErrorCode;
 import com.modle.global.gcs.GcsService;
 import com.modle.infra.mail.MailService;
 import lombok.RequiredArgsConstructor;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -90,9 +97,6 @@ public class ContractService {
         validateContractOwner(clientUserId, jobPosting.clientId());
         validateContractDraftableStatus(application);
 
-        // 의뢰인 동의 처리
-        contract.clientAgree(LocalDateTime.now(), null);
-
         if (contract.getContractType() == ContractType.FILE) {
             return handleFileContract(contract);
         }
@@ -113,7 +117,8 @@ public class ContractService {
         validateContractOwner(clientUserId, jobPosting.clientId());
         validateContractNotifiableStatus(application);
         validateRequiredCount(application, jobPosting);
-        validateClientAgreed(contract);
+
+        contract.clientAgree(LocalDateTime.now(), null);
 
         Model model = modelRepository.findById(application.getModelId())
                 .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
@@ -164,9 +169,7 @@ public class ContractService {
         contract.modelAgree(LocalDateTime.now(), modelIp);
 
         if (contract.isBothAgreed()) {
-            contract.confirm(LocalDateTime.now());
-            application.shoot();
-            updateJobPostingAfterAgreement(application);
+            confirmContract(contract, application);
         }
 
         return ContractResponse.from(contract);
@@ -274,12 +277,6 @@ public class ContractService {
     private void validatePdfReady(Contract contract) {
         if (contract.getPdfUrl() == null || contract.getPdfUrl().isBlank()) {
             throw new CustomException(ErrorCode.CONTRACT_PDF_REQUIRED);
-        }
-    }
-
-    private void validateClientAgreed(Contract contract) {
-        if (!Boolean.TRUE.equals(contract.getClientAgreed())) {
-            throw new CustomException(ErrorCode.CONTRACT_CLIENT_AGREEMENT_REQUIRED);
         }
     }
 
@@ -489,5 +486,129 @@ public class ContractService {
         if (application.getStatus() != ApplicationStatus.CONTACTED) {
             throw new CustomException(ErrorCode.INVALID_STATUS_CHANGE);
         }
+    }
+
+    private void confirmContract(Contract contract, Application application) {
+        String signedPdfUrl = createSignedPdf(contract);
+
+        contract.confirm(signedPdfUrl, LocalDateTime.now());
+        application.shoot();
+        updateJobPostingAfterAgreement(application);
+
+        sendContractConfirmedNotifications(contract, application);
+    }
+
+
+    private String createSignedPdf(Contract contract) {
+        validatePdfReady(contract);
+
+        byte[] originPdfBytes = downloadContractPdf(contract.getPdfUrl());
+        byte[] signedPdfBytes = mergeModelSignature(originPdfBytes, contract);
+
+        String objectName = "contracts/" + contract.getId() + "/signed-" + UUID.randomUUID() + ".pdf";
+        return gcsService.uploadPdf(signedPdfBytes, objectName);
+    }
+
+    private byte[] downloadContractPdf(String pdfUrl) {
+        try {
+            return gcsService.downloadPdf(pdfUrl);
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.CONTRACT_PDF_GENERATION_FAILED);
+        }
+    }
+
+    private byte[] mergeModelSignature(byte[] originPdfBytes, Contract contract) {
+        try (
+                PDDocument document = PDDocument.load(originPdfBytes);
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+        ) {
+            PDPage lastPage = document.getPage(document.getNumberOfPages() - 1);
+            PDRectangle pageSize = lastPage.getMediaBox();
+            PDType0Font font = loadSignatureFont(document);
+
+            float startX = 40f;
+            float startY = 90f;
+            float leading = 16f;
+
+            String agreedAt = contract.getModelAgreedAt() == null
+                    ? "-"
+                    : contract.getModelAgreedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+            String modelIp = contract.getModelIp() == null || contract.getModelIp().isBlank()
+                    ? "-"
+                    : contract.getModelIp();
+
+            try (PDPageContentStream contentStream = new PDPageContentStream(
+                    document,
+                    lastPage,
+                    PDPageContentStream.AppendMode.APPEND,
+                    true,
+                    true
+            )) {
+                contentStream.beginText();
+                contentStream.setFont(font, 11);
+                contentStream.newLineAtOffset(startX, Math.max(startY, pageSize.getLowerLeftY() + 40f));
+
+                contentStream.showText("모델 전자 동의 완료");
+                contentStream.newLineAtOffset(0, -leading);
+                contentStream.showText("동의 시각: " + agreedAt);
+                contentStream.newLineAtOffset(0, -leading);
+                contentStream.showText("동의 IP: " + modelIp);
+                contentStream.newLineAtOffset(0, -leading);
+                contentStream.showText("계약서 ID: " + contract.getId());
+
+                contentStream.endText();
+            }
+
+            document.save(outputStream);
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.CONTRACT_PDF_GENERATION_FAILED);
+        }
+    }
+
+    private PDType0Font loadSignatureFont(PDDocument document) {
+        try {
+            ClassPathResource fontResource = new ClassPathResource("fonts/Pretendard-Regular.ttf");
+            return PDType0Font.load(document, fontResource.getInputStream());
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.CONTRACT_PDF_GENERATION_FAILED);
+        }
+    }
+
+
+    private void sendContractConfirmedNotifications(Contract contract, Application application) {
+        Model model = modelRepository.findById(application.getModelId())
+                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+
+        User modelUser = userService.findById(model.getUser().getId());
+        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+        User clientUser = userService.findById(jobPosting.clientId());
+
+        String contractLink = createContractLink(contract.getId());
+
+        MessageConversationResponse conversation = messageService.createApplicationConversation(
+                clientUser.getId(),
+                modelUser.getId(),
+                application.getJobPostingId(),
+                application.getId()
+        );
+
+        messageService.sendSystemMessage(
+                conversation.id(),
+                clientUser.getId(),
+                null,
+                createContractConfirmedMessage(contractLink)
+        );
+
+        mailService.sendContractConfirmedEmail(modelUser.getEmail(), contractLink);
+    }
+
+    private String createContractConfirmedMessage(String contractLink) {
+        return """
+                계약이 최종 확정되었습니다.
+                아래 링크에서 계약 내용을 확인해 주세요.
+                %s
+                """.formatted(contractLink);
     }
 }

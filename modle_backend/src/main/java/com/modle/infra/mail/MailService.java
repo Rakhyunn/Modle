@@ -114,4 +114,19 @@ public class MailService {
 
         send(to, subject, text);
     }
+
+    @Async
+    public void sendContractConfirmedEmail(String to, String contractLink) {
+        String subject = "[모들] 계약 확정 안내";
+        String text = """
+        안녕하세요, 모들입니다.
+
+        계약이 최종 확정되었습니다.
+        아래 링크에서 계약 내용을 확인해 주세요.
+
+        %s
+        """.formatted(contractLink);
+
+        send(to, subject, text);
+    }
 }
