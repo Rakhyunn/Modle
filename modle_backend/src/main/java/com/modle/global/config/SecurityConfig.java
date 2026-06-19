@@ -7,6 +7,7 @@ import com.modle.global.auth.OAuth2SuccessHandler;
 import com.modle.global.auth.OAuth2UserService;
 import com.modle.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,6 +34,9 @@ public class SecurityConfig {
         private final OAuth2UserService oAuth2UserService;
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
         private final OAuth2FailureHandler oAuth2FailureHandler;
+
+        @Value("${app.frontend.base-url}")
+        private String frontendBaseUrl;
 
         @Bean
         public BCryptPasswordEncoder passwordEncoder() {
@@ -111,7 +115,9 @@ public class SecurityConfig {
         @Bean
         public UrlBasedCorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+                configuration.setAllowedOrigins(List.of(
+                        "http://localhost:3000",
+                        frontendBaseUrl));
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 configuration.setAllowCredentials(true);
                 configuration.setAllowedHeaders(List.of("*"));
