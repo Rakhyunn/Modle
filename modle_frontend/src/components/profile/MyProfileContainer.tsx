@@ -49,12 +49,6 @@ export function MyProfileContainer({ initialData }: Props) {
           <ReviewList targetUserId={initialData.userId} totalCount={initialData.reviewCount} />
         )}
 
-        {/* 임시 처리 (나머지 탭) */}
-        {['contracts'].includes(activeTab) && (
-          <div className="py-20 text-center text-sm text-gray-500">
-            아직 준비 중인 탭입니다.
-          </div>
-        )}
         {activeTab === 'contracts' && <MyContracts viewer="MODEL" />}
       </div>
     </div>
