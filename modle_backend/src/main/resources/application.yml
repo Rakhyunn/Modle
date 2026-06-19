@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/modle?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
@@ -10,10 +10,8 @@ spring:
   cloud:
     gcp:
       storage:
-        # .env 파일의 GCP_PROJECT_ID 값을 주입
         project-id: ${GCP_PROJECT_ID}
         credentials:
-          # .env 파일의 GCS_CREDENTIALS_PATH 값을 주입
           location: ${GCS_CREDENTIALS_PATH}
   jpa:
     hibernate:
@@ -90,7 +88,6 @@ jwt:
   access-expiration: 1800000
   refresh-expiration: 604800000
 
-# 커스텀 설정: 버킷 이름을 전역으로 사용하기 위해 정의
 gcs:
   bucket: ${GCS_BUCKET_NAME}
 
@@ -103,5 +100,5 @@ app:
 
 cookie:
   secure: true
-  domain: localhost
+  domain: ${COOKIE_DOMAIN:localhost}
   same-site: Strict
