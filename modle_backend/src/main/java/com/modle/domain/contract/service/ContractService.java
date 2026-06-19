@@ -13,11 +13,13 @@ import com.modle.domain.contract.entity.type.ContractType;
 import com.modle.domain.contract.pdf.ContractPdfGenerator;
 import com.modle.domain.contract.repository.ContractRepository;
 import com.modle.domain.contract.repository.ContractTemplateRepository;
+import com.modle.domain.contract.template.ContractTemplateContext;
 import com.modle.domain.contract.template.ContractTemplateRenderer;
 import com.modle.domain.jobposting.dto.response.JobPostingResponse;
 import com.modle.domain.jobposting.service.JobPostingService;
 import com.modle.domain.message.dto.response.MessageConversationResponse;
 import com.modle.domain.message.service.MessageService;
+import com.modle.domain.profile.service.ClientService;
 import com.modle.domain.user.entity.Model;
 import com.modle.domain.user.entity.User;
 import com.modle.domain.user.repository.ModelRepository;
@@ -27,24 +29,21 @@ import com.modle.global.exception.ErrorCode;
 import com.modle.global.gcs.GcsService;
 import com.modle.infra.mail.MailService;
 import lombok.RequiredArgsConstructor;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -66,6 +65,7 @@ public class ContractService {
     private final UserService userService;
     private final ModelRepository modelRepository;
     private final MailService mailService;
+    private final ClientService clientService;
 
     @Value("${app.frontend.base-url:http://localhost:3000}")
     private String frontendBaseUrl;
@@ -85,7 +85,11 @@ public class ContractService {
     }
 
     @Transactional
-    public ContractPdfResponse generatePdf(Long clientUserId, ContractPdfCreateRequest request) {
+    public ContractPdfResponse generatePdf(
+            Long clientUserId,
+            ContractPdfCreateRequest request,
+            String clientIp
+    ) {
         Contract contract = contractRepository.findById(request.contractId())
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
@@ -97,10 +101,19 @@ public class ContractService {
         validateContractOwner(clientUserId, jobPosting.clientId());
         validateContractDraftableStatus(application);
 
+        contract.clientAgree(LocalDateTime.now(), clientIp);
+
         if (contract.getContractType() == ContractType.FILE) {
             return handleFileContract(contract);
         }
-        return handleTemplateContract(contract);
+
+        Model model = modelRepository.findById(application.getModelId())
+                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+
+        User clientUser = userService.findById(jobPosting.clientId());
+        User modelUser = userService.findById(model.getUser().getId());
+
+        return handleTemplateContract(contract, jobPosting, clientUser, model, modelUser);
     }
 
     @Transactional
@@ -118,11 +131,10 @@ public class ContractService {
         validateContractNotifiableStatus(application);
         validateRequiredCount(application, jobPosting);
 
-        contract.clientAgree(LocalDateTime.now(), null);
-
         Model model = modelRepository.findById(application.getModelId())
                 .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
 
+        User clientUser = userService.findById(jobPosting.clientId());
         User modelUser = userService.findById(model.getUser().getId());
 
         MessageConversationResponse conversation = messageService.createApplicationConversation(
@@ -132,7 +144,7 @@ public class ContractService {
                 application.getId()
         );
 
-        String contractLink = createContractLink(contract.getId());
+        String contractLink = createContractLink(contract, ContractStatus.NOTIFIED);
 
         messageService.sendSystemMessage(
                 conversation.id(),
@@ -249,8 +261,29 @@ public class ContractService {
         return ContractViewResponse.from(contract);
     }
 
-    private String createContractLink(Long contractId) {
-        return frontendBaseUrl + "/contracts/" + contractId;
+    private String createContractLink(Contract contract, ContractStatus status) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(frontendBaseUrl)
+                .path("/contracts/{id}")
+                .queryParam("applicationId", contract.getApplicationId())
+                .queryParam("contractType", contract.getContractType())
+                .queryParam("payType", contract.getPayType())
+                .queryParam("payment", contract.getPayment())
+                .queryParam("shootDate", contract.getShootStartAt().toLocalDate())
+                .queryParam("shootStartTime", formatContractLinkTime(contract.getShootStartAt()))
+                .queryParam("shootEndTime", formatContractLinkTime(contract.getShootEndAt()))
+                .queryParam("location", contract.getLocation())
+                .queryParam("usageScope", contract.getUsageScope())
+                .queryParam("status", status.name());
+
+        if (contract.getMemo() != null && !contract.getMemo().isBlank()) {
+            builder.queryParam("memo", contract.getMemo());
+        }
+
+        return builder.buildAndExpand(contract.getId()).toUriString();
+    }
+
+    private String formatContractLinkTime(LocalDateTime dateTime) {
+        return dateTime.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"));
     }
 
     private String createContractNotificationMessage(String contractLink) {
@@ -267,8 +300,7 @@ public class ContractService {
     }
 
     private void validateAgreeableStatus(Contract contract) {
-        if (contract.getStatus() != ContractStatus.NOTIFIED
-                && contract.getStatus() != ContractStatus.VIEWED
+        if (contract.getStatus() != ContractStatus.VIEWED
                 && contract.getStatus() != ContractStatus.AGREED) {
             throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
         }
@@ -397,9 +429,22 @@ public class ContractService {
         return ContractPdfResponse.from(contract);
     }
 
-    private ContractPdfResponse handleTemplateContract(Contract contract) {
+    private ContractPdfResponse handleTemplateContract(
+            Contract contract,
+            JobPostingResponse jobPosting,
+            User clientUser,
+            Model model,
+            User modelUser
+    ) {
         String templateContent = loadContractTemplate();
-        String renderedContent = contractTemplateRenderer.render(templateContent, contract);
+        ContractTemplateContext context = buildTemplateContext(
+                contract,
+                jobPosting,
+                clientUser,
+                model,
+                modelUser
+        );
+        String renderedContent = contractTemplateRenderer.render(templateContent, context);
 
         byte[] pdfBytes = contractPdfGenerator.generate(renderedContent);
 
@@ -489,7 +534,15 @@ public class ContractService {
     }
 
     private void confirmContract(Contract contract, Application application) {
-        String signedPdfUrl = createSignedPdf(contract);
+        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+
+        Model model = modelRepository.findById(application.getModelId())
+                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+
+        User clientUser = userService.findById(jobPosting.clientId());
+        User modelUser = userService.findById(model.getUser().getId());
+
+        String signedPdfUrl = createSignedPdf(contract, jobPosting, clientUser, model, modelUser);
 
         contract.confirm(signedPdfUrl, LocalDateTime.now());
         application.shoot();
@@ -499,83 +552,28 @@ public class ContractService {
     }
 
 
-    private String createSignedPdf(Contract contract) {
-        validatePdfReady(contract);
+    private String createSignedPdf(
+            Contract contract,
+            JobPostingResponse jobPosting,
+            User clientUser,
+            Model model,
+            User modelUser
+    ) {
+        String templateContent = loadContractTemplate();
+        ContractTemplateContext context = buildTemplateContext(
+                contract,
+                jobPosting,
+                clientUser,
+                model,
+                modelUser
+        );
+        String renderedContent = contractTemplateRenderer.render(templateContent, context);
 
-        byte[] originPdfBytes = downloadContractPdf(contract.getPdfUrl());
-        byte[] signedPdfBytes = mergeModelSignature(originPdfBytes, contract);
+        byte[] pdfBytes = contractPdfGenerator.generate(renderedContent);
 
         String objectName = "contracts/" + contract.getId() + "/signed-" + UUID.randomUUID() + ".pdf";
-        return gcsService.uploadPdf(signedPdfBytes, objectName);
+        return gcsService.uploadPdf(pdfBytes, objectName);
     }
-
-    private byte[] downloadContractPdf(String pdfUrl) {
-        try {
-            return gcsService.downloadPdf(pdfUrl);
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.CONTRACT_PDF_GENERATION_FAILED);
-        }
-    }
-
-    private byte[] mergeModelSignature(byte[] originPdfBytes, Contract contract) {
-        try (
-                PDDocument document = PDDocument.load(originPdfBytes);
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        ) {
-            PDPage lastPage = document.getPage(document.getNumberOfPages() - 1);
-            PDRectangle pageSize = lastPage.getMediaBox();
-            PDType0Font font = loadSignatureFont(document);
-
-            float startX = 40f;
-            float startY = 90f;
-            float leading = 16f;
-
-            String agreedAt = contract.getModelAgreedAt() == null
-                    ? "-"
-                    : contract.getModelAgreedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-            String modelIp = contract.getModelIp() == null || contract.getModelIp().isBlank()
-                    ? "-"
-                    : contract.getModelIp();
-
-            try (PDPageContentStream contentStream = new PDPageContentStream(
-                    document,
-                    lastPage,
-                    PDPageContentStream.AppendMode.APPEND,
-                    true,
-                    true
-            )) {
-                contentStream.beginText();
-                contentStream.setFont(font, 11);
-                contentStream.newLineAtOffset(startX, Math.max(startY, pageSize.getLowerLeftY() + 40f));
-
-                contentStream.showText("모델 전자 동의 완료");
-                contentStream.newLineAtOffset(0, -leading);
-                contentStream.showText("동의 시각: " + agreedAt);
-                contentStream.newLineAtOffset(0, -leading);
-                contentStream.showText("동의 IP: " + modelIp);
-                contentStream.newLineAtOffset(0, -leading);
-                contentStream.showText("계약서 ID: " + contract.getId());
-
-                contentStream.endText();
-            }
-
-            document.save(outputStream);
-            return outputStream.toByteArray();
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.CONTRACT_PDF_GENERATION_FAILED);
-        }
-    }
-
-    private PDType0Font loadSignatureFont(PDDocument document) {
-        try {
-            ClassPathResource fontResource = new ClassPathResource("fonts/Pretendard-Regular.ttf");
-            return PDType0Font.load(document, fontResource.getInputStream());
-        } catch (IOException e) {
-            throw new CustomException(ErrorCode.CONTRACT_PDF_GENERATION_FAILED);
-        }
-    }
-
 
     private void sendContractConfirmedNotifications(Contract contract, Application application) {
         Model model = modelRepository.findById(application.getModelId())
@@ -585,7 +583,7 @@ public class ContractService {
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
         User clientUser = userService.findById(jobPosting.clientId());
 
-        String contractLink = createContractLink(contract.getId());
+        String contractLink = createContractLink(contract, contract.getStatus());
 
         MessageConversationResponse conversation = messageService.createApplicationConversation(
                 clientUser.getId(),
@@ -610,5 +608,67 @@ public class ContractService {
                 아래 링크에서 계약 내용을 확인해 주세요.
                 %s
                 """.formatted(contractLink);
+    }
+
+    private ContractTemplateContext buildTemplateContext(
+            Contract contract,
+            JobPostingResponse jobPosting,
+            User clientUser,
+            Model model,
+            User modelUser
+    ) {
+        var client = clientService.findByUserId(clientUser.getId());
+
+        String clientSignatureText = Boolean.TRUE.equals(contract.getClientAgreed())
+                ? client.getCompanyName()
+                : "";
+
+        String clientSignedAt = contract.getClientAgreedAt() == null
+                ? ""
+                : contract.getClientAgreedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        String modelSignatureText = Boolean.TRUE.equals(contract.getModelAgreed())
+                ? model.getName()
+                : "";
+
+        String modelSignedAt = contract.getModelAgreedAt() == null
+                ? ""
+                : contract.getModelAgreedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        return new ContractTemplateContext(
+                client.getCompanyName(),
+                clientUser.getEmail(),
+                model.getName(),
+                modelUser.getEmail(),
+                jobPosting.content(),
+                jobPosting.category().name(),
+                contract.getShootStartAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                contract.getShootEndAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                contract.getLocation(),
+                formatContractPayment(contract),
+                formatContractPayType(contract),
+                contract.getUsageScope(),
+                contract.getMemo(),
+                clientSignatureText,
+                clientSignedAt,
+                modelSignatureText,
+                modelSignedAt
+        );
+    }
+
+    private String formatContractPayment(Contract contract) {
+        if (contract.getPayType() == com.modle.domain.contract.entity.type.PayType.FREE) {
+            return "0원";
+        }
+
+        return NumberFormat.getNumberInstance(Locale.KOREA).format(contract.getPayment()) + "원";
+    }
+
+    private String formatContractPayType(Contract contract) {
+        return switch (contract.getPayType()) {
+            case CASH -> "현금";
+            case SERVICE -> "서비스";
+            case FREE -> "무료";
+        };
     }
 }

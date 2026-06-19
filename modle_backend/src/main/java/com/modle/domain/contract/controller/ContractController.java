@@ -56,11 +56,16 @@ public class ContractController {
     @PreAuthorize("hasRole('CLIENT')")
     public ApiResponse<ContractPdfResponse> createContractPdf(
             @AuthenticationPrincipal SecurityUser securityUser,
-            @Valid @RequestBody ContractPdfCreateRequest request
+            @Valid @RequestBody ContractPdfCreateRequest request,
+            HttpServletRequest httpServletRequest
     ) {
         return ApiResponse.ok(
                 "계약서 PDF 생성 성공",
-                contractService.generatePdf(securityUser.getId(), request)
+                contractService.generatePdf(
+                        securityUser.getId(),
+                        request,
+                        httpServletRequest.getRemoteAddr()
+                )
         );
     }
 

@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Service
@@ -59,25 +57,5 @@ public class GcsService {
         storage.create(blobInfo, fileBytes);
 
         return "https://storage.googleapis.com/" + bucketName + "/" + objectName;
-    }
-
-    public byte[] downloadPdf(String fileUrl) {
-        try {
-            String prefix = "https://storage.googleapis.com/" + bucketName + "/";
-
-            if(fileUrl == null || fileUrl.isBlank() || !fileUrl.startsWith(prefix)) {
-                throw new IllegalArgumentException("유효하지 않은 파일 URL입니다.");
-            }
-
-            String objectName = URLDecoder.decode(
-                    fileUrl.substring(prefix.length()),
-                    StandardCharsets.UTF_8
-            );
-
-            BlobId blobId = BlobId.of(bucketName, objectName);
-            return storage.readAllBytes(blobId);
-        } catch (Exception e) {
-            throw new IllegalStateException("GCS 파일 다운로드에 실패했습니다.", e);
-        }
     }
 }
