@@ -44,4 +44,10 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     long countByJobPostingIdAndStatusNot(Long jobPostingId, ApplicationStatus status);
     long countByJobPostingIdAndStatus(Long jobPostingId, ApplicationStatus status);
     long countByJobPostingIdAndStatusIn(Long jobPostingId, List<ApplicationStatus> statuses);
+
+    List<Application> findByModelIdOrderByCreatedDateDesc(Long modelId);
+
+    List<Application> findByJobPostingIdInOrderByCreatedDateDesc(List<Long> jobPostingIds);
+
+    List<Application> findByJobPostingIdAndStatus(Long jobPostingId, ApplicationStatus status);
 }
