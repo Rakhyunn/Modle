@@ -26,8 +26,10 @@ public class ModleBackendApplication {
     private static void setupGcsCredentials() throws IOException {
         String credentialsJson = System.getenv("GCS_CREDENTIALS_JSON");
         if (credentialsJson != null && !credentialsJson.isBlank()) {
+            // Base64 디코딩 추가
+            byte[] decoded = java.util.Base64.getDecoder().decode(credentialsJson.trim());
             Path tempFile = Files.createTempFile("gcs-key", ".json");
-            Files.writeString(tempFile, credentialsJson);
+            Files.write(tempFile, decoded);
             System.setProperty("GCS_CREDENTIALS_PATH", "file:" + tempFile.toAbsolutePath());
         }
     }
