@@ -119,4 +119,15 @@ public class ApplicationController {
         );
     }
 
+    // MATCH-016: 촬영 완료 처리 (의뢰인)
+    @PreAuthorize("hasRole('CLIENT')")
+    @PatchMapping("/applications/{id}/complete")
+    public ApiResponse<ApplicationResponse> complete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal SecurityUser securityUser) {
+        return ApiResponse.ok(
+                "촬영 완료 처리 성공",
+                applicationService.completeApplication(securityUser.getId(), id)
+        );
+    }
 }
