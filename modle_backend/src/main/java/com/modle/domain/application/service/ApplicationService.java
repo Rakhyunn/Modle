@@ -1,6 +1,8 @@
 package com.modle.domain.application.service;
 
 import com.modle.domain.application.dto.request.ApplicationCreateRequest;
+import com.modle.domain.application.dto.request.CancelShootingRequest;
+import com.modle.domain.application.dto.request.HoldRequest;
 import com.modle.domain.application.dto.response.ApplicantResponse;
 import com.modle.domain.application.dto.response.ApplicationResponse;
 import com.modle.domain.application.dto.response.ContactResponse;
@@ -211,7 +213,6 @@ public class ApplicationService {
 
         application.contact();
 
-        // TODO(message 도메인 협의 필요): 모델에게 컨택 쪽지 발송 연동
         return ApplicationResponse.from(application);
     }
 
@@ -244,6 +245,84 @@ public class ApplicationService {
                         message.getCreatedAt().toLocalDateTime()
                 ))
                 .toList();
+    }
+
+    // MATCH-012: 촬영 취소 (ON_HOLD → SHOOTING_CANCELLED, 공고 CANCELLED 처리)
+    @Transactional
+    public ApplicationResponse cancelShooting(Long clientId, Long applicationId, CancelShootingRequest request) {
+        Application application = getApplication(applicationId);
+        JobPosting jobPosting = getJobPostingAndValidateOwner(application.getJobPostingId(), clientId);
+
+        if (application.getStatus() != ApplicationStatus.ON_HOLD) {
+            throw new CustomException(ErrorCode.APPLICATION_CANCEL_SHOOTING_NOT_ALLOWED);
+        }
+
+        application.cancelShooting(request.cancelReason());
+        jobPosting.updateStatus(JobPostingStatus.CANCELLED);
+        return ApplicationResponse.from(application);
+    }
+
+    // MATCH-013: 촬영 보류 (SHOOTING → ON_HOLD)
+    @Transactional
+    public ApplicationResponse holdShooting(Long clientId, Long applicationId, HoldRequest request) {
+        Application application = getApplication(applicationId);
+        JobPosting jobPosting = getJobPostingAndValidateOwner(application.getJobPostingId(), clientId);
+
+        if (application.getStatus() != ApplicationStatus.SHOOTING) {
+            throw new CustomException(ErrorCode.APPLICATION_HOLD_NOT_ALLOWED);
+        }
+
+        application.hold(request.holdReason());
+        jobPosting.updateStatus(JobPostingStatus.ON_HOLD);
+        return ApplicationResponse.from(application);
+    }
+
+    // MATCH-014: 촬영 재개 (ON_HOLD → SHOOTING, 모델 알림 발송)
+    @Transactional
+    public ApplicationResponse resumeShooting(Long clientId, Long applicationId) {
+        Application application = getApplication(applicationId);
+        JobPosting jobPosting = getJobPostingAndValidateOwner(application.getJobPostingId(), clientId);
+
+        if (application.getStatus() != ApplicationStatus.ON_HOLD) {
+            throw new CustomException(ErrorCode.APPLICATION_RESUME_NOT_ALLOWED);
+        }
+
+        application.resume();
+        jobPosting.updateStatus(JobPostingStatus.SHOOTING);
+
+        Model model = modelRepository.findById(application.getModelId())
+                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+        MessageConversation conversation = messageService.findConversationByApplicationId(applicationId);
+        messageService.sendSystemMessage(
+                conversation.getId(), clientId, model.getUser().getId(),
+                "촬영이 재개되었습니다. 일정을 확인해 주세요."
+        );
+
+        return ApplicationResponse.from(application);
+    }
+
+    // re-recruit: 재모집 (ON_HOLD → SHOOTING_CANCELLED, 기존 공고 마감 + 새 공고 생성)
+    @Transactional
+    public ApplicationResponse reRecruit(Long clientId, Long applicationId) {
+        Application application = getApplication(applicationId);
+        getJobPostingAndValidateOwner(application.getJobPostingId(), clientId);
+
+        if (application.getStatus() != ApplicationStatus.ON_HOLD) {
+            throw new CustomException(ErrorCode.APPLICATION_RE_RECRUIT_NOT_ALLOWED);
+        }
+
+        application.closeForReRecruit();
+        jobPostingService.cloneForReRecruit(application.getJobPostingId());
+        return ApplicationResponse.from(application);
+    }
+
+    private JobPosting getJobPostingAndValidateOwner(Long jobPostingId, Long clientId) {
+        JobPosting jobPosting = jobPostingRepository.findById(jobPostingId)
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POSTING_NOT_FOUND));
+        if (!jobPosting.getClientId().equals(clientId)) {
+            throw new CustomException(ErrorCode.JOB_POSTING_FORBIDDEN);
+        }
+        return jobPosting;
     }
 
     // MATCH-016: 촬영 완료 처리 (의뢰인)
