@@ -16,3 +16,7 @@ spring:
             enable: true
           starttls:
             enable: false
+
+cookie:
+  secure: true
+  same-site: None
