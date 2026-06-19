@@ -198,6 +198,15 @@ public class MessageService {
         return unreadMessages.size();
     }
 
+    @Transactional
+    public void deleteConversation(Long userId, Long conversationId) {
+        MessageConversation conversation = findConversation(conversationId);
+        validateParticipant(conversation, userId);
+
+        messageRepository.deleteByConversationId(conversationId);
+        conversationRepository.delete(conversation);
+    }
+
     public MessageConversation findConversationByApplicationId(Long applicationId) {
         return conversationRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MESSAGE_CONVERSATION_NOT_FOUND));
@@ -252,6 +261,33 @@ public class MessageService {
 
         if (!posting.getClientId().equals(clientId)) {
             throw new CustomException(ErrorCode.MESSAGE_POST_NOT_AVAILABLE);
+        }
+    }
+
+    @Transactional
+    public void sendStatusChangeNotifications(
+            Long postId,
+            Long clientId,
+            JobPostingStatus newStatus,
+            String reason
+    ) {
+        List<MessageConversation> conversations =
+                conversationRepository.findByPostIdAndApplicationIdIsNotNull(postId);
+        if (conversations.isEmpty()) {
+            return;
+        }
+        String content = "공고 상태가 변경되었습니다. [" + newStatus.getDisplayName() + "]"
+                + (reason != null && !reason.isBlank() ? "\n사유: " + reason : "");
+        for (MessageConversation conversation : conversations) {
+            Message message = Message.builder()
+                    .conversationId(conversation.getId())
+                    .senderId(clientId)
+                    .receiverId(conversation.getModelId())
+                    .parentMessageId(null)
+                    .content(content)
+                    .senderType(SenderType.SYSTEM)
+                    .build();
+            messageRepository.save(message);
         }
     }
 

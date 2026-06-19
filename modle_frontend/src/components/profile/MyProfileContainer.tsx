@@ -7,6 +7,8 @@ import { PortfolioGallery } from '@/components/portfolio/PortfolioGallery';
 import { BookmarkedJobs } from '@/components/profile/BookmarkedJobs';
 import { MyApplications } from '@/components/profile/MyApplications';
 import { MyContracts } from '@/components/profile/MyContracts';
+import { MyCareerList } from '@/components/profile/MyCareerList';
+import { ReviewList } from '@/components/review/ReviewList';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileTabs } from '@/components/profile/ProfileTabs';
 import { Model } from '@/types/model';
@@ -42,6 +44,17 @@ export function MyProfileContainer({ initialData }: Props) {
         )}
         {activeTab === 'favorites' && <BookmarkedJobs />}
         {activeTab === 'applications' && <MyApplications />}
+        {activeTab === 'career' && <MyCareerList />}
+        {activeTab === 'reviews' && initialData.userId && (
+          <ReviewList targetUserId={initialData.userId} totalCount={initialData.reviewCount} />
+        )}
+
+        {/* 임시 처리 (나머지 탭) */}
+        {['contracts'].includes(activeTab) && (
+          <div className="py-20 text-center text-sm text-gray-500">
+            아직 준비 중인 탭입니다.
+          </div>
+        )}
         {activeTab === 'contracts' && <MyContracts viewer="MODEL" />}
       </div>
     </div>
