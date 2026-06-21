@@ -5,6 +5,8 @@ import { getMyModel } from "@/lib/api/model";
 import { getServerClient } from "@/lib/api/serverClient";
 import { notFound } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "내 프로필 수정 | 모들",
 };
