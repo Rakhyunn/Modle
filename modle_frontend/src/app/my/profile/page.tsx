@@ -1,9 +1,8 @@
 import { MyClientProfileContainer } from "@/components/profile/MyClientProfileContainer";
 import { MyProfileContainer } from "@/components/profile/MyProfileContainer";
-import { getMe } from "@/lib/api/auth";
+import { getServerClient } from "@/lib/api/client";
 import { getMyClient } from "@/lib/api/clientProfile";
 import { getMyModel } from "@/lib/api/model";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 export const metadata = {
@@ -11,23 +10,24 @@ export const metadata = {
 };
 
 async function getProfilePageData() {
-  const cookieStore = await cookies();
-  const cookieString = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
-  const user = await getMe({ Cookie: cookieString });
+  const serverClient = await getServerClient();
+
+  const { data: meData, error } = await serverClient.GET("/api/v1/auth/me");
+  if (error) throw new Error("로그인 후 이용해주세요.");
+
+  const user = meData?.data;
+  if (!user) throw new Error("사용자 정보가 올바르지 않습니다.");
 
   if (user.role === "CLIENT") {
     return {
       role: "CLIENT" as const,
-      data: await getMyClient({ Cookie: cookieString }),
+      data: await getMyClient(serverClient),
     };
   }
 
   return {
     role: "MODEL" as const,
-    data: await getMyModel({ Cookie: cookieString }),
+    data: await getMyModel(serverClient),
   };
 }
 
