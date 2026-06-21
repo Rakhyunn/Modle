@@ -5,18 +5,7 @@ spring:
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
 
-  mail:
-    host: smtp.gmail.com
-    port: 465
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-          starttls:
-            enable: false
-
 cookie:
   secure: true
+  domain: ${COOKIE_DOMAIN}
   same-site: None
