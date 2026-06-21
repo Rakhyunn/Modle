@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import createClient from "openapi-fetch";
 import type { paths } from "./schema";
 
@@ -60,21 +59,6 @@ export async function authenticatedFetch(
   }
 
   return fetch(request);
-}
-
-export async function getServerClient() {
-  const cookieStore = await cookies();
-  const cookieString = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
-
-  return createClient<paths>({
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080",
-    headers: {
-      Cookie: cookieString,
-    },
-  });
 }
 
 // onRequest 시점에 요청 바디가 소비되기 전에 복제해두고, onResponse에서 재시도용으로 사용

@@ -1,8 +1,8 @@
 import { MyClientProfileContainer } from "@/components/profile/MyClientProfileContainer";
 import { MyProfileContainer } from "@/components/profile/MyProfileContainer";
-import { getServerClient } from "@/lib/api/client";
 import { getMyClient } from "@/lib/api/clientProfile";
 import { getMyModel } from "@/lib/api/model";
+import { getServerClient } from "@/lib/api/serverClient";
 import { notFound } from "next/navigation";
 
 export const metadata = {
