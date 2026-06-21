@@ -1,29 +1,32 @@
-import { MyProfileContainer } from '@/components/profile/MyProfileContainer';
-import { MyClientProfileContainer } from '@/components/profile/MyClientProfileContainer';
-import { getMyModel } from '@/lib/api/model';
-import { getMyClient } from '@/lib/api/clientProfile';
-import { getMe } from '@/lib/api/auth';
-import { cookies } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { MyClientProfileContainer } from "@/components/profile/MyClientProfileContainer";
+import { MyProfileContainer } from "@/components/profile/MyProfileContainer";
+import { getMe } from "@/lib/api/auth";
+import { getMyClient } from "@/lib/api/clientProfile";
+import { getMyModel } from "@/lib/api/model";
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 
 export const metadata = {
-  title: '내 프로필 | 모들',
+  title: "내 프로필 | 모들",
 };
 
 async function getProfilePageData() {
   const cookieStore = await cookies();
-  const cookieString = cookieStore.toString();
+  const cookieString = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
   const user = await getMe({ Cookie: cookieString });
 
-  if (user.role === 'CLIENT') {
+  if (user.role === "CLIENT") {
     return {
-      role: 'CLIENT' as const,
+      role: "CLIENT" as const,
       data: await getMyClient({ Cookie: cookieString }),
     };
   }
 
   return {
-    role: 'MODEL' as const,
+    role: "MODEL" as const,
     data: await getMyModel({ Cookie: cookieString }),
   };
 }
@@ -33,12 +36,12 @@ export default async function MyProfilePage() {
 
   try {
     pageData = await getProfilePageData();
-  } catch(error) {
+  } catch (error) {
     console.error("내 프로필 로딩 실패:", error);
     notFound();
   }
 
-  if (pageData.role === 'CLIENT') {
+  if (pageData.role === "CLIENT") {
     return <MyClientProfileContainer initialData={pageData.data} />;
   }
 
