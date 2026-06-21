@@ -39,7 +39,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
@@ -64,6 +63,7 @@ public class ContractService {
     private final ContractPdfGenerator contractPdfGenerator;
     private final ContractTemplateRenderer contractTemplateRenderer;
 
+    private final ContractValidator contractValidator;
     private final ApplicationService applicationService;
     private final JobPostingService jobPostingService;
     private final MessageService messageService;
@@ -80,9 +80,9 @@ public class ContractService {
         Application application = applicationService.getApplication(request.applicationId());
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
-        validateContractOwner(clientUserId, jobPosting.clientId());
-        validateContractDraftableStatus(application);
-        validateCreateRequest(request);
+        contractValidator.validateContractOwner(clientUserId, jobPosting.clientId());
+        contractValidator.validateContractDraftableStatus(application);
+        contractValidator.validateCreateRequest(request);
 
         return contractRepository.findByApplicationId(request.applicationId())
                 .map(existingContract -> rewriteDraftableContract(existingContract, request))
@@ -98,13 +98,13 @@ public class ContractService {
         Contract contract = contractRepository.findById(request.contractId())
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        validateDraftStatus(contract);
+        contractValidator.validateDraftStatus(contract);
 
         Application application = applicationService.getApplication(contract.getApplicationId());
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
-        validateContractOwner(clientUserId, jobPosting.clientId());
-        validateContractDraftableStatus(application);
+        contractValidator.validateContractOwner(clientUserId, jobPosting.clientId());
+        contractValidator.validateContractDraftableStatus(application);
 
         contract.clientAgree(LocalDateTime.now(), clientIp);
 
@@ -126,15 +126,15 @@ public class ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        validateDraftStatus(contract);
-        validatePdfReady(contract);
+        contractValidator.validateDraftStatus(contract);
+        contractValidator.validatePdfReady(contract);
 
         Application application = applicationService.getApplication(contract.getApplicationId());
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
-        validateContractOwner(clientUserId, jobPosting.clientId());
-        validateContractNotifiableStatus(application);
-        validateRequiredCount(application, jobPosting);
+        contractValidator.validateContractOwner(clientUserId, jobPosting.clientId());
+        contractValidator.validateContractNotifiableStatus(application);
+        contractValidator.validateRequiredCount(application, jobPosting);
 
         Model model = modelRepository.findById(application.getModelId())
                 .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
@@ -174,14 +174,14 @@ public class ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        validateAgreeableStatus(contract);
+        contractValidator.validateAgreeableStatus(contract);
 
         Application application = applicationService.getApplication(contract.getApplicationId());
 
         Model model = modelRepository.findById(application.getModelId())
                 .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
 
-        validateContractTargetModel(modelUserId, model.getUser().getId());
+        contractValidator.validateContractTargetModel(modelUserId, model.getUser().getId());
 
         contract.modelAgree(LocalDateTime.now(), modelIp);
 
@@ -197,13 +197,13 @@ public class ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        validateAgreeableStatus(contract);
+        contractValidator.validateAgreeableStatus(contract);
 
         Application application = applicationService.getApplication(contract.getApplicationId());
         Model model = modelRepository.findById(application.getModelId())
                 .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
 
-        validateContractTargetModel(modelUserId, model.getUser().getId());
+        contractValidator.validateContractTargetModel(modelUserId, model.getUser().getId());
 
         contract.reject(rejectReason);
         application.revertToContacted(); // 거부 시 재계약 가능하도록 CONTACTED 상태로 롤백
@@ -215,7 +215,7 @@ public class ContractService {
         Application application = applicationService.getApplication(applicationId);
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
-        validateContractOwner(clientUserId, jobPosting.clientId());
+        contractValidator.validateContractOwner(clientUserId, jobPosting.clientId());
 
         Contract contract = contractRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
@@ -440,14 +440,14 @@ public class ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        validateViewable(contract);
+        contractValidator.validateViewable(contract);
 
         Application application = applicationService.getApplication(contract.getApplicationId());
 
         Model model = modelRepository.findById(application.getModelId())
                 .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
 
-        validateContractTargetModel(modelUserId, model.getUser().getId());
+        contractValidator.validateContractTargetModel(modelUserId, model.getUser().getId());
 
         contract.markViewedAt(LocalDateTime.now());
 
@@ -484,25 +484,6 @@ public class ContractService {
                 계약서가 도착했습니다. 아래 링크에서 확인해 주세요.
                 %s
                 """.formatted(contractLink);
-    }
-
-    private void validateDraftStatus(Contract contract) {
-        if (contract.getStatus() != ContractStatus.DRAFT) {
-            throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
-        }
-    }
-
-    private void validateAgreeableStatus(Contract contract) {
-        if (contract.getStatus() != ContractStatus.VIEWED
-                && contract.getStatus() != ContractStatus.AGREED) {
-            throw new CustomException(ErrorCode.INVALID_CONTRACT_STATUS);
-        }
-    }
-
-    private void validatePdfReady(Contract contract) {
-        if (contract.getPdfUrl() == null || contract.getPdfUrl().isBlank()) {
-            throw new CustomException(ErrorCode.CONTRACT_PDF_REQUIRED);
-        }
     }
 
     private ContractResponse rewriteDraftableContract(
@@ -547,64 +528,6 @@ public class ContractService {
             return ContractResponse.from(contractRepository.save(contract));
         } catch (DataIntegrityViolationException e) {
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
-        }
-    }
-
-    private void validateCreateRequest(ContractCreateRequest request) {
-        validateShootTime(request);
-        validateContractType(request);
-        validatePayType(request);
-    }
-
-    private void validatePayType(ContractCreateRequest request) {
-        if (request.payType() == null) {
-            return;
-        }
-
-        if (request.payment() == null) {
-            throw new CustomException(ErrorCode.INVALID_CONTRACT_PAYMENT);
-        }
-
-        switch (request.payType()) {
-            case CASH -> validateCashPayment(request);
-            case SERVICE -> validateServicePayment(request);
-            case FREE -> validateFreePayment(request);
-        }
-    }
-
-    private void validateCashPayment(ContractCreateRequest request) {
-        if (request.payment().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CustomException(ErrorCode.INVALID_CONTRACT_PAYMENT);
-        }
-    }
-
-    private void validateServicePayment(ContractCreateRequest request) {
-        if (request.payment().compareTo(BigDecimal.ZERO) < 0) {
-            throw new CustomException(ErrorCode.INVALID_CONTRACT_PAYMENT);
-        }
-    }
-
-    private void validateFreePayment(ContractCreateRequest request) {
-        if (request.payment().compareTo(BigDecimal.ZERO) != 0) {
-            throw new CustomException(ErrorCode.INVALID_CONTRACT_PAYMENT);
-        }
-    }
-
-    private void validateShootTime(ContractCreateRequest request) {
-        if (!request.shootEndAt().isAfter(request.shootStartAt())) {
-            throw new CustomException(ErrorCode.INVALID_CONTRACT_SHOOT_TIME);
-        }
-    }
-
-    private void validateContractType(ContractCreateRequest request) {
-        if (request.contractType() == ContractType.FILE) {
-            validateFileContract(request);
-        }
-    }
-
-    private void validateFileContract(ContractCreateRequest request) {
-        if (request.pdfUrl() == null || request.pdfUrl().isBlank()) {
-            throw new CustomException(ErrorCode.INVALID_FILE_CONTRACT);
         }
     }
 
@@ -657,28 +580,6 @@ public class ContractService {
         }
     }
 
-    private void validateViewable(Contract contract) {
-        if (contract.getStatus() == ContractStatus.DRAFT) {
-            throw new CustomException(ErrorCode.CONTRACT_NOT_VIEWABLE);
-        }
-
-        if (contract.getPdfUrl() == null || contract.getPdfUrl().isBlank()) {
-            throw new CustomException(ErrorCode.CONTRACT_PDF_REQUIRED);
-        }
-    }
-
-    private void validateContractOwner(Long clientUserId, Long ownerClientId) {
-        if (!ownerClientId.equals(clientUserId)) {
-            throw new CustomException(ErrorCode.CONTRACT_FORBIDDEN);
-        }
-    }
-
-    private void validateContractTargetModel(Long modelUserId, Long contractModelId) {
-        if (!contractModelId.equals(modelUserId)) {
-            throw new CustomException(ErrorCode.CONTRACT_FORBIDDEN);
-        }
-    }
-
     private void updateJobPostingAfterAgreement(Application application) {
         JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
 
@@ -697,32 +598,6 @@ public class ContractService {
 
         if (confirmedCount >= jobPosting.requiredCount()) {
             jobPostingService.markShooting(application.getJobPostingId());
-        }
-    }
-
-    private void validateRequiredCount(Application application, JobPostingResponse jobPosting) {
-        long contracted = applicationRepository.countByJobPostingIdAndStatusIn(
-                application.getJobPostingId(),
-                List.of(
-                        ApplicationStatus.CONTRACT_SENT,
-                        ApplicationStatus.SHOOTING,
-                        ApplicationStatus.COMPLETED
-                )
-        );
-        if (jobPosting.requiredCount() != null && contracted >= jobPosting.requiredCount()) {
-            throw new CustomException(ErrorCode.APPLICATION_EXCEED_REQUIRED_COUNT);
-        }
-    }
-
-    private void validateContractDraftableStatus(Application application) {
-        if (application.getStatus() != ApplicationStatus.APPLIED && application.getStatus() != ApplicationStatus.CONTACTED) {
-            throw new CustomException(ErrorCode.INVALID_STATUS_CHANGE);
-        }
-    }
-
-    private void validateContractNotifiableStatus(Application application) {
-        if (application.getStatus() != ApplicationStatus.CONTACTED) {
-            throw new CustomException(ErrorCode.INVALID_STATUS_CHANGE);
         }
     }
 
