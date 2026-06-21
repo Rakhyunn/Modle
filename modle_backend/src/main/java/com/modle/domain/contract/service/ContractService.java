@@ -14,10 +14,6 @@ import com.modle.domain.contract.repository.ContractRepository;
 import com.modle.domain.contract.repository.ContractTemplateRepository;
 import com.modle.domain.jobposting.dto.response.JobPostingResponse;
 import com.modle.domain.jobposting.service.JobPostingService;
-import com.modle.domain.user.entity.Model;
-import com.modle.domain.user.entity.User;
-import com.modle.domain.user.repository.ModelRepository;
-import com.modle.domain.user.service.UserService;
 import com.modle.global.exception.CustomException;
 import com.modle.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -41,10 +37,9 @@ public class ContractService {
     private final ContractDocumentService contractDocumentService;
     private final ApplicationService applicationService;
     private final JobPostingService jobPostingService;
-    private final UserService userService;
-    private final ModelRepository modelRepository;
     private final ContractNotificationService contractNotificationService;
     private final ContractQueryService contractQueryService;
+    private final ContractPartyLoader contractPartyLoader;
 
     @Transactional
     public ContractResponse createContract(Long clientUserId, ContractCreateRequest request) {
@@ -71,26 +66,19 @@ public class ContractService {
 
         contractValidator.validateDraftStatus(contract);
 
-        Application application = applicationService.getApplication(contract.getApplicationId());
-        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+        ContractPartyContext parties = contractPartyLoader.loadByContract(contract);
 
-        contractValidator.validateContractOwner(clientUserId, jobPosting.clientId());
-        contractValidator.validateContractDraftableStatus(application);
+        contractValidator.validateContractOwner(clientUserId, parties.jobPosting().clientId());
+        contractValidator.validateContractDraftableStatus(parties.application());
 
         contract.clientAgree(LocalDateTime.now(), clientIp);
 
-        Model model = modelRepository.findById(application.getModelId())
-                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
-
-        User clientUser = userService.findById(jobPosting.clientId());
-        User modelUser = userService.findById(model.getUser().getId());
-
         return contractDocumentService.generateDraftPdf(
                 contract,
-                jobPosting,
-                clientUser,
-                model,
-                modelUser
+                parties.jobPosting(),
+                parties.clientUser(),
+                parties.model(),
+                parties.modelUser()
         );
     }
 
@@ -102,23 +90,17 @@ public class ContractService {
         contractValidator.validateDraftStatus(contract);
         contractValidator.validatePdfReady(contract);
 
-        Application application = applicationService.getApplication(contract.getApplicationId());
-        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
+        ContractPartyContext parties = contractPartyLoader.loadByContract(contract);
 
-        contractValidator.validateContractOwner(clientUserId, jobPosting.clientId());
-        contractValidator.validateContractNotifiableStatus(application);
-        contractValidator.validateRequiredCount(application, jobPosting);
-
-        Model model = modelRepository.findById(application.getModelId())
-                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
-
-        User modelUser = userService.findById(model.getUser().getId());
+        contractValidator.validateContractOwner(clientUserId, parties.jobPosting().clientId());
+        contractValidator.validateContractNotifiableStatus(parties.application());
+        contractValidator.validateRequiredCount(parties.application(), parties.jobPosting());
 
         contractNotificationService.sendContractNotification(
                 contract,
-                application,
+                parties.application(),
                 clientUserId,
-                modelUser
+                parties.modelUser()
         );
 
         contract.notifyModel(LocalDateTime.now());
@@ -134,17 +116,17 @@ public class ContractService {
 
         contractValidator.validateAgreeableStatus(contract);
 
-        Application application = applicationService.getApplication(contract.getApplicationId());
+        ContractPartyContext parties = contractPartyLoader.loadByContract(contract);
 
-        Model model = modelRepository.findById(application.getModelId())
-                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
-
-        contractValidator.validateContractTargetModel(modelUserId, model.getUser().getId());
+        contractValidator.validateContractTargetModel(
+                modelUserId,
+                parties.modelUser().getId()
+        );
 
         contract.modelAgree(LocalDateTime.now(), modelIp);
 
         if (contract.isBothAgreed()) {
-            confirmContract(contract, application);
+            confirmContract(contract, parties.application());
         }
 
         return ContractResponse.from(contract);
@@ -157,14 +139,15 @@ public class ContractService {
 
         contractValidator.validateAgreeableStatus(contract);
 
-        Application application = applicationService.getApplication(contract.getApplicationId());
-        Model model = modelRepository.findById(application.getModelId())
-                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+        ContractPartyContext parties = contractPartyLoader.loadByContract(contract);
 
-        contractValidator.validateContractTargetModel(modelUserId, model.getUser().getId());
+        contractValidator.validateContractTargetModel(
+                modelUserId,
+                parties.modelUser().getId()
+        );
 
         contract.reject(rejectReason);
-        application.revertToContacted(); // 거부 시 재계약 가능하도록 CONTACTED 상태로 롤백
+        parties.application().revertToContacted();
 
         return ContractResponse.from(contract);
     }
@@ -195,13 +178,10 @@ public class ContractService {
 
     public ContractStatusResponse getContractByApplicationId(Long userId, Long applicationId) {
         Application application = applicationService.getApplication(applicationId);
-        Model model = modelRepository.findById(application.getModelId())
-                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
+        ContractPartyContext parties = contractPartyLoader.loadByApplication(application);
 
-        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
-
-        boolean isModel = model.getUser().getId().equals(userId);
-        boolean isClient = jobPosting.clientId().equals(userId);
+        boolean isModel = parties.modelUser().getId().equals(userId);
+        boolean isClient = parties.jobPosting().clientId().equals(userId);
 
         if (!isModel && !isClient) {
             throw new CustomException(ErrorCode.CONTRACT_ACCESS_DENIED);
@@ -210,7 +190,7 @@ public class ContractService {
         Contract contract = contractRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        return ContractStatusResponse.from(contract, application);
+        return ContractStatusResponse.from(contract, parties.application());
     }
 
     @Transactional
@@ -220,12 +200,12 @@ public class ContractService {
 
         contractValidator.validateViewable(contract);
 
-        Application application = applicationService.getApplication(contract.getApplicationId());
+        ContractPartyContext parties = contractPartyLoader.loadByContract(contract);
 
-        Model model = modelRepository.findById(application.getModelId())
-                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
-
-        contractValidator.validateContractTargetModel(modelUserId, model.getUser().getId());
+        contractValidator.validateContractTargetModel(
+                modelUserId,
+                parties.modelUser().getId()
+        );
 
         contract.markViewedAt(LocalDateTime.now());
 
@@ -305,20 +285,14 @@ public class ContractService {
     }
 
     private void confirmContract(Contract contract, Application application) {
-        JobPostingResponse jobPosting = jobPostingService.getJobPosting(application.getJobPostingId());
-
-        Model model = modelRepository.findById(application.getModelId())
-                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_NOT_FOUND));
-
-        User clientUser = userService.findById(jobPosting.clientId());
-        User modelUser = userService.findById(model.getUser().getId());
+        ContractPartyContext parties = contractPartyLoader.loadByApplication(application);
 
         String signedPdfUrl = contractDocumentService.generateSignedPdf(
                 contract,
-                jobPosting,
-                clientUser,
-                model,
-                modelUser
+                parties.jobPosting(),
+                parties.clientUser(),
+                parties.model(),
+                parties.modelUser()
         );
 
         contract.confirm(signedPdfUrl, LocalDateTime.now());
