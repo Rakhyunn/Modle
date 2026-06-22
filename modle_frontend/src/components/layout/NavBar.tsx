@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
-import { NotificationPanel } from "@/components/ui/NotificationPanel";
 import { Toast, type ToastState } from "@/components/ui/Toast";
-import { motion, AnimatePresence } from "framer-motion";
-import { getMyModel } from "@/lib/api/model";
+import { useAuth } from "@/hooks/useAuth";
 import { getMyClient } from "@/lib/api/clientProfile";
+import { getMyModel } from "@/lib/api/model";
+import { motion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const ROLE_LABEL: Record<string, string> = {
   MODEL: "모델",
@@ -17,7 +16,8 @@ const ROLE_LABEL: Record<string, string> = {
   ADMIN: "관리자",
 };
 
-const NAV_LINK_CLASS = "text-[14px] font-medium leading-5 text-gray-300 hover:text-white transition-colors relative group";
+const NAV_LINK_CLASS =
+  "text-[14px] font-medium leading-5 text-gray-300 hover:text-white transition-colors relative group";
 
 function BellIcon() {
   return (
@@ -79,7 +79,7 @@ export function NavBar() {
         .catch(() => setUserName("모델"));
     } else if (user.role === "CLIENT") {
       getMyClient()
-        .then((c) => setUserName(c.companyName || c.name || "의뢰인"))
+        .then((c) => setUserName(c.companyName || "의뢰인"))
         .catch(() => setUserName("의뢰인"));
     }
   }, [user]);
@@ -95,7 +95,13 @@ export function NavBar() {
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-white/10 bg-black/90 backdrop-blur-lg px-6 shadow-sm transition-all duration-300">
       <Link href="/" className="flex items-center gap-2 group">
-        <Image src="/icon.svg" alt="Modle Logo" width={36} height={36} className="rounded-[10px] transition-transform group-hover:scale-105 invert" />
+        <Image
+          src="/icon.svg"
+          alt="Modle Logo"
+          width={36}
+          height={36}
+          className="rounded-[10px] transition-transform group-hover:scale-105 invert"
+        />
         <span className="text-[18px] font-extrabold tracking-tight leading-6 text-white group-hover:text-gray-200 transition-colors">
           Modle
         </span>
@@ -135,8 +141,21 @@ export function NavBar() {
                 )}
                 {/* 쪽지 (메일함 아이콘) */}
                 {isModelOrClient && (
-                  <Link href="/messages" className="relative ml-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-gray-300 hover:border-white/50 hover:text-white hover:bg-white/10 transition-all">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <Link
+                    href="/messages"
+                    className="relative ml-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-gray-300 hover:border-white/50 hover:text-white hover:bg-white/10 transition-all"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <rect width="20" height="16" x="2" y="4" rx="2" />
                       <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                     </svg>
@@ -147,7 +166,9 @@ export function NavBar() {
 
             <div className="flex items-center gap-3 pl-2 pr-1 border-l border-white/20 ml-1">
               <span className="text-[13px] font-bold tracking-wide text-white">
-                {userName ? `${userName}님` : `${ROLE_LABEL[user.role] ?? user.role}님`}
+                {userName
+                  ? `${userName}님`
+                  : `${ROLE_LABEL[user.role] ?? user.role}님`}
               </span>
               <motion.button
                 whileHover={{ scale: 1.05 }}
