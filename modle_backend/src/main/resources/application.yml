@@ -6,7 +6,9 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   config:
-    import: optional:file:.env[.properties]
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:modle_backend/.env[.properties]
 
   cloud:
     gcp:
