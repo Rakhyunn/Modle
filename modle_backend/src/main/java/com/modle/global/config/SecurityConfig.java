@@ -62,6 +62,7 @@ public class SecurityConfig {
                                                                 "/api/v1/auth/email/verify/confirm",
                                                                 "/api/v1/auth/login",
                                                                 "/api/v1/auth/reissue",
+                                                                "/api/v1/auth/oauth/exchange",
                                                                 "/api/v1/auth/password/reset/send",
                                                                 "/api/v1/auth/password/reset/confirm",
                                                                 "/api/v1/auth/password/reset")
