@@ -6,7 +6,15 @@ import type { paths } from "./schema";
 // 프론트엔드 도메인의 first-party 쿠키로 저장되어, 프론트/백엔드를 서로 다른 도메인에
 // 배포해도 토큰이 유지된다(BFF 패턴). 빈 문자열이면 openapi-fetch가 "/api/v1/..." 상대
 // 경로를 생성한다.
-export const API_BASE_URL = "";
+//
+// 단, 서버 컴포넌트(RSC/SSR)에서 이 client를 직접 쓰는 경우 상대경로는 origin이 없어
+// fetch가 불가능하다. 그래서 서버 환경에서는 백엔드 절대 URL로 직접 호출한다.
+// (서버에서 호출되는 곳은 모두 공개 엔드포인트이며, 인증이 필요한 SSR은 쿠키를 전달하는
+//  serverClient를 사용한다.)
+export const API_BASE_URL =
+  typeof window === "undefined"
+    ? process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
+    : "";
 
 // 브라우저에서 백엔드로 직접 전체 페이지 이동이 필요한 경우(OAuth 시작 등)에만 쓰는 절대 URL.
 // 일반 REST 호출에는 사용하지 말 것 — 그러면 프록시를 우회해 쿠키가 third-party가 된다.
