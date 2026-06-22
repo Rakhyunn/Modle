@@ -1,7 +1,16 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./schema";
 
-export const API_BASE_URL =
+// 브라우저에서 보내는 API 요청은 same-origin(상대경로)으로 보내 Next.js의 rewrite 프록시
+// (next.config.ts)를 거쳐 백엔드로 전달한다. 이렇게 하면 백엔드가 내려주는 인증 쿠키가
+// 프론트엔드 도메인의 first-party 쿠키로 저장되어, 프론트/백엔드를 서로 다른 도메인에
+// 배포해도 토큰이 유지된다(BFF 패턴). 빈 문자열이면 openapi-fetch가 "/api/v1/..." 상대
+// 경로를 생성한다.
+export const API_BASE_URL = "";
+
+// 브라우저에서 백엔드로 직접 전체 페이지 이동이 필요한 경우(OAuth 시작 등)에만 쓰는 절대 URL.
+// 일반 REST 호출에는 사용하지 말 것 — 그러면 프록시를 우회해 쿠키가 third-party가 된다.
+export const BACKEND_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 export const client = createClient<paths>({
