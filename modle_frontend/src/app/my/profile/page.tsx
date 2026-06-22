@@ -3,7 +3,7 @@ import { MyProfileContainer } from "@/components/profile/MyProfileContainer";
 import { getMyClient } from "@/lib/api/clientProfile";
 import { getMyModel } from "@/lib/api/model";
 import { getServerClient } from "@/lib/api/serverClient";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +14,22 @@ export const metadata = {
 async function getProfilePageData() {
   const serverClient = await getServerClient();
 
-  const { data: meData, error } = await serverClient.GET("/api/v1/auth/me");
-  if (error) throw new Error("로그인 후 이용해주세요.");
+  const { data: meData, error, response } = await serverClient.GET(
+    "/api/v1/auth/me",
+  );
+  const status = response?.status;
+
+  // 인증 만료/미로그인은 404가 아니라 로그인 페이지로 보낸다
+  if (status === 401) {
+    redirect("/login?redirect=/my/profile");
+  }
+  // 그 외 오류는 상태코드를 담아 그대로 던져 error.tsx 바운더리가 표시하게 한다
+  if (error) {
+    throw new Error(`내 정보 조회 실패 (status ${status ?? "unknown"})`);
+  }
 
   const user = meData?.data;
-  if (!user) throw new Error("사용자 정보가 올바르지 않습니다.");
+  if (!user) throw new Error("사용자 정보가 비어 있습니다.");
 
   if (user.role === "CLIENT") {
     return {
@@ -34,14 +45,8 @@ async function getProfilePageData() {
 }
 
 export default async function MyProfilePage() {
-  let pageData: Awaited<ReturnType<typeof getProfilePageData>>;
-
-  try {
-    pageData = await getProfilePageData();
-  } catch (error) {
-    console.error("내 프로필 로딩 실패:", error);
-    notFound();
-  }
+  // 인증 오류는 redirect로, 그 외 오류는 my/error.tsx 바운더리로 처리된다
+  const pageData = await getProfilePageData();
 
   if (pageData.role === "CLIENT") {
     return <MyClientProfileContainer initialData={pageData.data} />;
