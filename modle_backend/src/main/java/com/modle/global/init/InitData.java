@@ -61,7 +61,7 @@ public class InitData {
 //                        self.work4(); // 테스트 모델프로필
 //                        self.work5(); // 테스트 클라이언트프로필
 //                        self.work6(); // 계약서 템플릿
-//                        self.work8(); // 추천 테스트용 모델 500개
+                        self.work8(); // 추천 테스트용 모델 500개
 //                        self.work7(); // 테스트 공고
                 };
         }
@@ -415,7 +415,7 @@ public class InitData {
         // 추천 테스트용 모델 60개 생성
         @Transactional
         public void work8() {
-            if (userRepository.count() < 10) return;
+            if (userRepository.count() > 50) return;
 
             List<User> newUsers = new ArrayList<>();
             List<Model> newModels = new ArrayList<>();
