@@ -60,7 +60,7 @@ public class InitData {
 //                        self.work3(); // 테스트 의뢰인
 //                        self.work4(); // 테스트 모델프로필
                         self.work5(); // 테스트 클라이언트프로필
-//                        self.work6(); // 계약서 템플릿
+                        self.work6(); // 계약서 템플릿
                         self.work8(); // 추천 테스트용 모델 500개
                         self.work7(); // 테스트 공고
                 };
