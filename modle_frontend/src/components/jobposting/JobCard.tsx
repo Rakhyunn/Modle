@@ -1,6 +1,7 @@
 import { getCategoryLabel } from "@/lib/constants/category";
 import { STATUS_LABELS } from "@/lib/constants/jobPostingStatus";
 import { getRegionLabel } from "@/lib/constants/region";
+import { JobListItem } from "@/types/job";
 import Image from "next/image";
 import Link from "next/link";
 
