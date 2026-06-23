@@ -56,7 +56,7 @@ public class ContractNotificationService {
             builder.queryParam("memo", contract.getMemo());
         }
 
-        return builder.buildAndExpand(contract.getId()).toUriString();
+        return builder.encode().buildAndExpand(contract.getId()).toUriString();
     }
 
     private String formatContractLinkTime(LocalDateTime dateTime) {
