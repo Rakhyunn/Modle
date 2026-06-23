@@ -75,12 +75,14 @@ function getContractCardMeta(href: string) {
     const status = url.searchParams.get("status") ?? "";
     const shootDate = url.searchParams.get("shootDate") ?? "";
     const location = url.searchParams.get("location") ?? "";
+    const postTitle = url.searchParams.get("postTitle") ?? "";
 
     return {
       contractId,
       statusLabel: CONTRACT_STATUS_LABELS[status] ?? "계약 확인",
       shootDate,
       location,
+      postTitle,
     };
   } catch {
     return {
@@ -88,6 +90,7 @@ function getContractCardMeta(href: string) {
       statusLabel: "계약 확인",
       shootDate: "",
       location: "",
+      postTitle: "",
     };
   }
 }
@@ -117,7 +120,8 @@ function renderContractMessage(content: string, href: string) {
           <span className="min-w-0 flex-1">
             <span className="flex items-center justify-between gap-3">
               <span className="text-[14px] font-bold leading-5">
-                계약서 {meta.contractId ? `#${meta.contractId}` : ""}
+                {meta.postTitle ||
+                  `계약서${meta.contractId ? ` #${meta.contractId}` : ""}`}
               </span>
               <span className="shrink-0 rounded-md border border-hairline px-2 py-1 text-[11px] font-semibold text-mute">
                 {meta.statusLabel}
