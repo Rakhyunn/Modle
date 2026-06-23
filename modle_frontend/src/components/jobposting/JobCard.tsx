@@ -1,5 +1,7 @@
+import { getCategoryLabel } from "@/lib/constants/category";
+import { STATUS_LABELS } from "@/lib/constants/jobPostingStatus";
 import { getRegionLabel } from "@/lib/constants/region";
-import { JobListItem } from "@/types/job";
+import Image from "next/image";
 import Link from "next/link";
 
 interface JobCardProps {
@@ -9,9 +11,8 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, isFavorited, onToggleFavorite }: JobCardProps) {
-  // Mock company data if not provided
-  const companyName = "모들 파트너스";
-  const profileImageUrl = "/placeholder.png";
+  const companyName = job.clientCompanyName ?? "업체명 비공개";
+  const profileImageUrl = job.clientProfileImageUrl ?? "/placeholder.png";
 
   return (
     <Link href={`/jobs/${job.id}`} className="block h-full w-full group">
@@ -20,11 +21,13 @@ export function JobCard({ job, isFavorited, onToggleFavorite }: JobCardProps) {
         <div className="flex flex-col mb-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full border border-gray-100 overflow-hidden shrink-0 bg-gray-50 flex items-center justify-center">
-                <img
+              <div className="relative w-8 h-8 rounded-full border border-gray-100 overflow-hidden shrink-0 bg-gray-50">
+                <Image
                   src={profileImageUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
+                  alt={`${companyName} 프로필`}
+                  fill
+                  sizes="32px"
+                  className="object-cover"
                 />
               </div>
               <span className="text-[13px] font-bold text-gray-600 truncate">
@@ -32,7 +35,7 @@ export function JobCard({ job, isFavorited, onToggleFavorite }: JobCardProps) {
               </span>
             </div>
             <span className="text-[11px] font-bold text-gray-400">
-              {job.status === "RECRUITING" ? "모집중" : job.status}
+              {job.status ? (STATUS_LABELS[job.status] ?? job.status) : ""}
             </span>
           </div>
           <h3 className="text-[17px] font-bold text-gray-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
@@ -45,7 +48,8 @@ export function JobCard({ job, isFavorited, onToggleFavorite }: JobCardProps) {
           <div className="flex items-center">
             <span className="truncate">
               {getRegionLabel(job.region)}{" "}
-              <span className="mx-1.5 text-gray-300">|</span> {job.category}{" "}
+              <span className="mx-1.5 text-gray-300">|</span>{" "}
+              {getCategoryLabel(job.category)}{" "}
               <span className="mx-1.5 text-gray-300">|</span>{" "}
               {job.requiredSex === "M"
                 ? "남성"
@@ -62,7 +66,7 @@ export function JobCard({ job, isFavorited, onToggleFavorite }: JobCardProps) {
             {job.payType === "FREE"
               ? "무료"
               : job.payType === "SERVICE"
-                ? "상호무페이"
+                ? "서비스 제공"
                 : job.payment
                   ? `${Number(job.payment).toLocaleString()}원`
                   : "협의"}
@@ -80,8 +84,13 @@ export function JobCard({ job, isFavorited, onToggleFavorite }: JobCardProps) {
             </span>
             {onToggleFavorite && (
               <button
+                type="button"
                 onClick={(e) => onToggleFavorite(e, job.id!)}
-                className={`transition-colors ${isFavorited ? "text-red-500" : "text-gray-300 hover:text-red-500"}`}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-all active:scale-90 ${
+                  isFavorited
+                    ? "border-red-200 bg-red-50 text-red-500"
+                    : "border-gray-200 bg-white text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                }`}
                 aria-label="즐겨찾기"
               >
                 <svg
@@ -89,11 +98,11 @@ export function JobCard({ job, isFavorited, onToggleFavorite }: JobCardProps) {
                   fill={isFavorited ? "currentColor" : "none"}
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  strokeWidth={2}
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
                     d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                   />
                 </svg>

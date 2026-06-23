@@ -4,15 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { client } from "@/lib/api/client";
 import { REGION_OPTIONS, getRegionLabel } from "@/lib/constants/region";
 import type { components } from "@/lib/api/schema";
-import {
-  addJobBookmark,
-  getJobBookmarks,
-  removeJobBookmark,
-} from "@/lib/api/bookmark";
+import { addJobBookmark, getJobBookmarks, removeJobBookmark } from "@/lib/api/bookmark";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { JobCard } from "@/components/jobposting/JobCard";
+import { JobCardSkeleton } from "@/components/jobposting/JobCardSkeleton";
 
 type JobListItem = components["schemas"]["JobPostingListResponse"];
 type PageData = components["schemas"]["PageJobPostingListResponse"];
@@ -21,7 +18,6 @@ const CATEGORY_OPTIONS = [
   { value: "", label: "전체 카테고리" },
   { value: "HAIR", label: "헤어" },
   { value: "MAKEUP", label: "메이크업" },
-  { value: "CLOTHING", label: "의류" },
   { value: "FITTING", label: "피팅" },
   { value: "HAND", label: "핸드" },
   { value: "FOOD", label: "음식" },
@@ -29,25 +25,14 @@ const CATEGORY_OPTIONS = [
   { value: "ETC", label: "기타" },
 ];
 
+const STATUS_FILTER_OPTIONS = [
+  { value: "", label: "전체 상태" },
+  { value: "RECRUITING", label: "모집 중" },
+  { value: "SHOOTING", label: "촬영 중" },
+  { value: "COMPLETED", label: "완료" },
+];
 
 
-const STATUS_LABELS: Record<string, string> = {
-  RECRUITING: "모집 중",
-  SHOOTING: "촬영 중",
-  COMPLETED: "완료",
-  CANCELLED: "취소",
-  ON_HOLD: "일시정지",
-  CLOSED: "마감",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  RECRUITING: "bg-green-100 text-green-700",
-  SHOOTING:   "bg-blue-100 text-blue-700",
-  COMPLETED:  "bg-gray-100 text-gray-600",
-  CANCELLED:  "bg-red-100 text-red-600",
-  ON_HOLD:    "bg-amber-100 text-amber-700",
-  CLOSED:     "bg-slate-200 text-slate-600",
-};
 
 export default function JobsPage() {
   const { user } = useAuth();
@@ -55,10 +40,24 @@ export default function JobsPage() {
   const isClient = user?.role === "CLIENT";
   const [region, setRegion] = useState("");
   const [category, setCategory] = useState("");
+  const [status, setStatus] = useState("");
   const [page, setPage] = useState(0);
   const [pageData, setPageData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [favoritedIds, setFavoritedIds] = useState<Set<number>>(new Set());
+
+  const [isRegionOpen, setIsRegionOpen] = useState(false);
+  const regionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (regionRef.current && !regionRef.current.contains(e.target as Node)) {
+        setIsRegionOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // 초기 북마크 목록 로드
   useEffect(() => {
@@ -102,6 +101,7 @@ export default function JobsPage() {
           query: {
             region: region || undefined,
             category: category || undefined,
+            status: status || undefined,
             page,
             size: 12,
           },
@@ -120,13 +120,18 @@ export default function JobsPage() {
     return () => {
       cancelled = true;
     };
-  }, [region, category, page]);
+  }, [region, category, status, page]);
 
-  const handleFilterChange = (nextRegion: string, nextCategory: string) => {
+  const handleFilterChange = (
+    nextRegion: string,
+    nextCategory: string,
+    nextStatus: string,
+  ) => {
     setLoading(true);
     setPage(0);
     setRegion(nextRegion);
     setCategory(nextCategory);
+    setStatus(nextStatus);
   };
 
   const handlePageChange = (i: number) => {
@@ -137,6 +142,7 @@ export default function JobsPage() {
   const items = pageData?.content ?? [];
   const totalPages = pageData?.totalPages ?? 1;
   const currentPage = pageData?.number ?? 0;
+  const totalCount = pageData?.totalElements ?? 0;
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
@@ -180,8 +186,11 @@ export default function JobsPage() {
               <button
                 key={o.value}
                 type="button"
-                onClick={() => handleFilterChange(region, o.value)}
-                className={`whitespace-nowrap rounded-xl px-5 py-2.5 text-[14px] font-bold transition-all ${
+                onClick={() => {
+                  const next = category === o.value ? "" : o.value;
+                  if (next !== category) handleFilterChange(region, next, status);
+                }}
+                className={`whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-bold transition-all ${
                   category === o.value
                     ? "bg-ink text-canvas shadow-md"
                     : "bg-transparent text-gray-500 hover:bg-gray-100 hover:text-ink"
@@ -192,26 +201,65 @@ export default function JobsPage() {
             ))}
           </div>
           
-          <div className="w-full md:w-auto flex shrink-0 border-t md:border-t-0 md:border-l border-hairline pt-4 md:pt-0 md:pl-4 mt-2 md:mt-0">
+          <div className="w-full md:w-auto flex shrink-0 gap-2 border-t md:border-t-0 md:border-l border-hairline pt-4 md:pt-0 md:pl-4 mt-2 md:mt-0">
             <select
-              value={region}
-              onChange={(e) => handleFilterChange(e.target.value, category)}
-              className="w-full md:w-48 h-11 rounded-xl border border-hairline bg-gray-50 px-4 text-[14px] font-medium text-ink outline-none transition focus:border-ink focus:bg-white focus:ring-2 focus:ring-ink/10 cursor-pointer appearance-none"
+              value={status}
+              onChange={(e) => handleFilterChange(region, category, e.target.value)}
+              className="w-full md:w-40 h-11 rounded-xl border border-hairline bg-gray-50 px-4 text-[14px] font-medium text-ink outline-none transition focus:border-ink focus:bg-white focus:ring-2 focus:ring-ink/10 cursor-pointer appearance-none"
               style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg stroke='currentColor' fill='none' stroke-width='2' viewBox='0 0 24 24' stroke-linecap='round' stroke-linejoin='round' height='1em' width='1em' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 1rem center", backgroundSize: "1em" }}
             >
-              <option value="">🗺️ 전체 지역</option>
-              {REGION_OPTIONS.map((o) => (
+              {STATUS_FILTER_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
               ))}
             </select>
+            <div className="relative w-full md:w-48" ref={regionRef}>
+            <div
+              onClick={() => setIsRegionOpen(!isRegionOpen)}
+              className="w-full md:w-48 h-11 rounded-xl border border-hairline bg-gray-50 px-4 text-[14px] font-medium text-ink flex items-center justify-between cursor-pointer hover:border-ink hover:bg-white transition"
+            >
+              <span>{region ? REGION_OPTIONS.find(o => o.value === region)?.label : "🗺️ 전체 지역"}</span>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform ${isRegionOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+            {isRegionOpen && (
+              <div className="absolute z-50 top-full mt-2 left-0 md:left-4 w-full md:w-48 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                <div
+                  className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-500 text-[14px]"
+                  onClick={() => { handleFilterChange('', category, status); setIsRegionOpen(false); }}
+                >
+                  🗺️ 전체 지역
+                </div>
+                {REGION_OPTIONS.map(o => (
+                  <div
+                    key={o.value}
+                    className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-ink text-[14px]"
+                    onClick={() => { handleFilterChange(o.value, category, status); setIsRegionOpen(false); }}
+                  >
+                    {o.label}
+                  </div>
+                ))}
+              </div>
+            )}
+            </div>
           </div>
         </section>
 
+        {!loading ? (
+          <p className="text-[14px] text-gray-500">
+            총 <span className="font-bold text-ink">{totalCount.toLocaleString()}</span>개의 공고
+          </p>
+        ) : null}
+
         {/* 목록 */}
         {loading ? (
-          <p className="py-12 text-center text-[15px] text-mute">로딩 중...</p>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <li key={i} className="relative h-full">
+                <JobCardSkeleton />
+              </li>
+            ))}
+          </ul>
         ) : items.length === 0 ? (
           <p className="py-12 text-center text-[15px] text-mute">
             등록된 공고가 없습니다.
@@ -225,6 +273,7 @@ export default function JobsPage() {
                   isFavorited={favoritedIds.has(job.id!)}
                   onToggleFavorite={isModel ? (e, id) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     toggleFavorite(id);
                   } : undefined}
                 />

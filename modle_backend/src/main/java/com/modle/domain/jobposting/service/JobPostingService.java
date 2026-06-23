@@ -29,7 +29,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +68,7 @@ public class JobPostingService {
                 .minCareerMonths(request.minCareerMonths())
                 .payment(request.payment())
                 .payType(request.payType())
+                .serviceDetail(request.serviceDetail())
                 .shootDate(request.shootDate())
                 .build();
 
@@ -93,7 +96,7 @@ public class JobPostingService {
                 request.heightMin(), request.heightMax(),
                 request.weightMin(), request.weightMax(),
                 request.minCareerMonths(),
-                request.payment(), request.payType(), request.shootDate());
+                request.payment(), request.payType(), request.serviceDetail(), request.shootDate());
 
         replaceImages(jobPostingId, request.imageUrls());
 
@@ -116,12 +119,24 @@ public class JobPostingService {
         jobPostingRepository.delete(jobPosting);
     }
 
-    // JOB-005: 지역·카테고리 필터를 적용한 공고 목록을 반환한다.
-    public Page<JobPostingListResponse> getJobPostings(String region, String category, Pageable pageable) {
+    // JOB-005: 지역·카테고리·상태 필터를 적용한 공고 목록을 반환한다.
+    public Page<JobPostingListResponse> getJobPostings(String region, String category, String status, Pageable pageable) {
         Region regionEnum = parseEnum(Region.class, region);
         Category categoryEnum = parseEnum(Category.class, category);
-        return jobPostingRepository.findByFilter(regionEnum, categoryEnum, pageable)
-                .map(JobPostingListResponse::from);
+        JobPostingStatus statusEnum = parseEnum(JobPostingStatus.class, status);
+        Page<JobPosting> page = jobPostingRepository.findByFilter(regionEnum, categoryEnum, statusEnum, pageable);
+
+        List<Long> clientIds = page.getContent().stream()
+                .map(JobPosting::getClientId)
+                .distinct()
+                .toList();
+        Map<Long, Client> clientsByUserId = clientIds.isEmpty()
+                ? Map.of()
+                : clientRepository.findByUser_IdIn(clientIds).stream()
+                        .collect(Collectors.toMap(c -> c.getUser().getId(), c -> c));
+
+        return page.map(jobPosting ->
+                JobPostingListResponse.from(jobPosting, clientsByUserId.get(jobPosting.getClientId())));
     }
 
     private <E extends Enum<E>> E parseEnum(Class<E> enumClass, String value) {
@@ -197,6 +212,7 @@ public class JobPostingService {
                 .minCareerMonths(original.getMinCareerMonths())
                 .payment(original.getPayment())
                 .payType(original.getPayType())
+                .serviceDetail(original.getServiceDetail())
                 .shootDate(original.getShootDate())
                 .build();
 
@@ -294,12 +310,20 @@ public class JobPostingService {
         }
     }
 
-    // 공고 이미지 전체 교체: 기존 이미지를 GCS·DB에서 제거 후 새 목록으로 재저장한다.
+    // 공고 이미지 전체 교체: 신규 목록에 없는 기존 이미지만 GCS에서 제거 후 DB를 재구성한다.
     private void replaceImages(Long jobPostingId, List<String> imageUrls) {
+        Set<String> newUrls = (imageUrls == null)
+                ? Set.of()
+                : imageUrls.stream()
+                        .filter(url -> url != null && !url.isBlank())
+                        .collect(Collectors.toSet());
+
         List<JobPostingImage> existing =
                 jobPostingImageRepository.findByJobPostingIdOrderByDisplayOrderAsc(jobPostingId);
         for (JobPostingImage image : existing) {
-            gcsService.deleteImage(image.getImageUrl());
+            if (!newUrls.contains(image.getImageUrl())) {
+                gcsService.deleteImage(image.getImageUrl());
+            }
         }
         jobPostingImageRepository.deleteByJobPostingId(jobPostingId);
         saveImages(jobPostingId, imageUrls);

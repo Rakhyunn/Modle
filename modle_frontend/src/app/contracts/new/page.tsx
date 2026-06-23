@@ -19,7 +19,6 @@ import {
 type ContractType = "TEMPLATE";
 type PayType = "CASH" | "SERVICE" | "FREE";
 
-
 type FormState = {
   applicationId: string;
   contractType: ContractType;
@@ -75,19 +74,37 @@ function NewContractPageContent() {
     ...initialForm,
     applicationId: resolvedApplicationId,
   }));
-  const [status, setStatus] = useState<"idle" | "loading" | "saving" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "saving" | "success" | "error"
+  >("idle");
   const [message, setMessage] = useState("");
   const [draftContractId, setDraftContractId] = useState<number | null>(null);
   const [hasDraftContract, setHasDraftContract] = useState(false);
   const [lastSavedFormKey, setLastSavedFormKey] = useState<string | null>(null);
 
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }, []);
+
+  // 촬영일이 오늘이면 시작 시간도 현재 시각 이후만 선택 가능
+  const minStartTime = useMemo(() => {
+    if (form.shootDate !== todayStr) {
+      return undefined;
+    }
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  }, [form.shootDate, todayStr]);
+
+  const isFileContract = form.contractType === "FILE";
   const isTemplateContract = form.contractType === "TEMPLATE";
   const currentFormKey = useMemo(() => JSON.stringify(form), [form]);
   const hasUnsavedChanges =
     hasDraftContract &&
     lastSavedFormKey !== null &&
     currentFormKey !== lastSavedFormKey;
-
 
   useEffect(() => {
     if (!applicationIdFromQuery || isUsingMockApplicationId) {
@@ -156,7 +173,6 @@ function NewContractPageContent() {
     [form],
   );
 
-
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -182,6 +198,10 @@ function NewContractPageContent() {
       return "촬영 날짜와 시간을 모두 입력해주십시오.";
     }
 
+    if (new Date(preview.shootStartAt) < new Date()) {
+      return "촬영 시작 일시는 현재 시각 이후여야 합니다.";
+    }
+
     if (preview.shootStartAt >= preview.shootEndAt) {
       return "촬영 종료 시간은 시작 시간보다 늦어야 합니다.";
     }
@@ -193,7 +213,6 @@ function NewContractPageContent() {
     if (!form.usageScope.trim()) {
       return "사용 범위는 필수입니다.";
     }
-
 
     const payment = Number(form.payType === "FREE" ? "0" : form.payment);
 
@@ -254,7 +273,8 @@ function NewContractPageContent() {
         throw new Error(getErrorMessage(error, "계약서 저장에 실패했습니다."));
       }
 
-      const savedContract = (data as { data?: { id?: number } } | undefined)?.data;
+      const savedContract = (data as { data?: { id?: number } } | undefined)
+        ?.data;
 
       if (!savedContract?.id) {
         throw new Error("계약서 저장은 성공했지만 계약 ID를 받지 못했습니다.");
@@ -344,7 +364,8 @@ function NewContractPageContent() {
                   />
                   {isUsingMockApplicationId ? (
                     <p className="text-[13px] leading-5 text-mute">
-                      개발 환경에서는 지원 ID가 없을 때 900001부터 목업 값이 자동으로 들어갑니다.
+                      개발 환경에서는 지원 ID가 없을 때 900001부터 목업 값이
+                      자동으로 들어갑니다.
                     </p>
                   ) : null}
                 </div>
@@ -359,7 +380,8 @@ function NewContractPageContent() {
               {isTemplateContract ? (
                 <Field label="계약서 템플릿" required className="md:col-span-2">
                   <div className="rounded-md border border-hairline bg-canvas-soft px-3 py-3 text-[14px] leading-6 text-body">
-                    기본 촬영 계약서가 적용됩니다. PDF 생성 시 서버의 기본 계약서 양식으로 생성됩니다.
+                    기본 촬영 계약서가 적용됩니다. PDF 생성 시 서버의 기본
+                    계약서 양식으로 생성됩니다.
                   </div>
                 </Field>
               ) : null}
@@ -368,8 +390,11 @@ function NewContractPageContent() {
                 <input
                   className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                   type="date"
+                  min={todayStr}
                   value={form.shootDate}
-                  onChange={(event) => updateField("shootDate", event.target.value)}
+                  onChange={(event) =>
+                    updateField("shootDate", event.target.value)
+                  }
                 />
               </Field>
 
@@ -378,6 +403,7 @@ function NewContractPageContent() {
                   <input
                     className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                     type="time"
+                    min={minStartTime}
                     value={form.shootStartTime}
                     onChange={(event) =>
                       updateField("shootStartTime", event.target.value)
@@ -400,7 +426,9 @@ function NewContractPageContent() {
                 <input
                   className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                   value={form.location}
-                  onChange={(event) => updateField("location", event.target.value)}
+                  onChange={(event) =>
+                    updateField("location", event.target.value)
+                  }
                 />
               </Field>
 
@@ -417,7 +445,11 @@ function NewContractPageContent() {
                       }`}
                       onClick={() => handlePayTypeChange(type)}
                     >
-                      {type === "CASH" ? "현금" : type === "SERVICE" ? "서비스" : "무료"}
+                      {type === "CASH"
+                        ? "현금"
+                        : type === "SERVICE"
+                          ? "서비스"
+                          : "무료"}
                     </button>
                   ))}
                 </div>
@@ -429,7 +461,9 @@ function NewContractPageContent() {
                   inputMode="numeric"
                   value={form.payType === "FREE" ? "0" : form.payment}
                   disabled={form.payType === "FREE"}
-                  onChange={(event) => updateField("payment", event.target.value)}
+                  onChange={(event) =>
+                    updateField("payment", event.target.value)
+                  }
                 />
               </Field>
 
@@ -437,7 +471,9 @@ function NewContractPageContent() {
                 <textarea
                   className="min-h-28 w-full resize-y rounded-md border border-hairline bg-canvas-soft px-3 py-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                   value={form.usageScope}
-                  onChange={(event) => updateField("usageScope", event.target.value)}
+                  onChange={(event) =>
+                    updateField("usageScope", event.target.value)
+                  }
                 />
               </Field>
 
@@ -448,7 +484,6 @@ function NewContractPageContent() {
                   onChange={(event) => updateField("memo", event.target.value)}
                 />
               </Field>
-
             </div>
           </section>
 
@@ -458,10 +493,7 @@ function NewContractPageContent() {
             </h2>
             <dl className="mt-5 space-y-4 text-[13px] leading-5">
               <PreviewRow label="지원 ID" value={`#${form.applicationId}`} />
-              <PreviewRow
-                label="계약 유형"
-                value="기본 템플릿"
-              />
+              <PreviewRow label="계약 유형" value="기본 템플릿" />
               <PreviewRow label="촬영 시작" value={preview.shootStartAt} mono />
               <PreviewRow label="촬영 종료" value={preview.shootEndAt} mono />
               <PreviewRow label="장소" value={form.location} />
@@ -484,7 +516,11 @@ function NewContractPageContent() {
               {draftContractId ? (
                 <button
                   type="button"
-                  disabled={status === "saving" || status === "loading" || hasUnsavedChanges}
+                  disabled={
+                    status === "saving" ||
+                    status === "loading" ||
+                    hasUnsavedChanges
+                  }
                   onClick={handleContinue}
                   className="mt-3 h-11 w-full rounded-lg border border-black bg-white px-6 text-[15px] font-semibold leading-6 text-black transition hover:bg-black hover:text-white disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                 >
@@ -540,10 +576,13 @@ function getNextDevMockApplicationId() {
     return String(DEV_MOCK_APPLICATION_ID_START);
   }
 
-  const savedValue = window.localStorage.getItem(DEV_MOCK_APPLICATION_ID_STORAGE_KEY);
+  const savedValue = window.localStorage.getItem(
+    DEV_MOCK_APPLICATION_ID_STORAGE_KEY,
+  );
   const parsedValue = Number(savedValue);
   const nextValue =
-    Number.isInteger(parsedValue) && parsedValue >= DEV_MOCK_APPLICATION_ID_START
+    Number.isInteger(parsedValue) &&
+    parsedValue >= DEV_MOCK_APPLICATION_ID_START
       ? parsedValue + 1
       : DEV_MOCK_APPLICATION_ID_START;
 

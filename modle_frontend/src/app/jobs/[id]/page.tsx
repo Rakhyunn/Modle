@@ -10,6 +10,7 @@ import { addJobBookmark, getJobBookmarks, removeJobBookmark } from "@/lib/api/bo
 import { API_BASE_URL, authenticatedFetch, client } from "@/lib/api/client";
 import { STATUS_CHANGE_DESCRIPTIONS, STATUS_COLORS, STATUS_LABELS, STATUS_TRANSITION_LABELS, STATUS_TRANSITIONS, eulo } from "@/lib/constants/jobPostingStatus";
 import { getRegionLabel } from "@/lib/constants/region";
+import { getCategoryLabel } from "@/lib/constants/category";
 import type { Model } from "@/types/model";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,6 +44,7 @@ type ClientDetail = ClientInfo & {
   minCareerMonths?: number;
   payment?: number;
   payType?: string;
+  serviceDetail?: string;
   shootDate?: string;
   createdDate?: string;
   recommendedModelIds: number[];
@@ -67,6 +69,7 @@ type ModelDetail = ClientInfo & {
   minCareerMonths?: number;
   payment?: number;
   payType?: string;
+  serviceDetail?: string;
   shootDate?: string;
   createdDate?: string;
   favorited: boolean;
@@ -84,6 +87,7 @@ type OtherDetail = ClientInfo & {
   requiredCount?: number;
   payment?: number;
   payType?: string;
+  serviceDetail?: string;
   shootDate?: string;
   createdDate?: string;
   imageUrls?: string[];
@@ -322,7 +326,7 @@ export default function JobDetailPage({
           | "CANCELLED"
           | "ON_HOLD"
           | "CLOSED",
-        reason: reason || null,
+        reason: reason || undefined,
       },
     });
     setStatusChanging(false);
@@ -551,7 +555,7 @@ export default function JobDetailPage({
                 공고 정보
               </h2>
               <dl className="mt-4 space-y-3 text-[13px] leading-5">
-                <InfoRow label="카테고리" value={detail.category} />
+                <InfoRow label="카테고리" value={getCategoryLabel(detail.category)} />
                 <InfoRow label="촬영 지역" value={getRegionLabel(detail.region)} />
                 <InfoRow
                   label="성별 조건"
@@ -579,6 +583,9 @@ export default function JobDetailPage({
                           : "-"
                   }
                 />
+                {detail.payType === "SERVICE" && detail.serviceDetail ? (
+                  <InfoRow label="제공 서비스" value={detail.serviceDetail} />
+                ) : null}
                 {detail.shootDate ? (
                   <InfoRow
                     label="촬영일"
@@ -890,7 +897,7 @@ function LockedRecommendationCard({
               key={category}
               className="rounded-full border border-hairline bg-white px-2 py-1 text-[10px] font-semibold text-mute"
             >
-              {category}
+              {getCategoryLabel(category)}
             </span>
           ))}
           {item.region ? (
