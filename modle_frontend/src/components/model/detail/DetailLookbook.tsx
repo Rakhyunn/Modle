@@ -78,7 +78,7 @@ export function DetailLookbook({ portfolios }: DetailLookbookProps) {
 
         {isFilterOpen && (
           <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 p-2">
-            {categories.map(cat => (
+            {CATEGORY_OPTIONS.map(({ value: cat }) => (
               <label key={cat} className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer rounded">
                 <input 
                   type="checkbox" 
