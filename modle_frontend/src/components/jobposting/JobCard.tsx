@@ -12,8 +12,8 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, isFavorited, onToggleFavorite }: JobCardProps) {
-  const companyName = job.clientCompanyName ?? "업체명 비공개";
-  const profileImageUrl = job.clientProfileImageUrl ?? "/placeholder.png";
+  const companyName = job.clientCompanyName || "업체명 비공개";
+  const profileImageUrl = job.clientProfileImageUrl || "/placeholder.png";
 
   return (
     <Link href={`/jobs/${job.id}`} className="block h-full w-full group">
