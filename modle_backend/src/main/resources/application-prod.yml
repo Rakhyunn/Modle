@@ -14,3 +14,17 @@ cookie:
   domain: ${COOKIE_DOMAIN:}
   # first-party이므로 cross-site용 None 대신 Lax 사용(동일 출처 요청에서 정상 전송, CSRF 방어 강화).
   same-site: Lax
+
+spring:
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: WARN
+    com.modle: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
