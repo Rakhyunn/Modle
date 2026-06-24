@@ -81,7 +81,9 @@ function NewContractPageContent() {
     ...initialForm,
     applicationId: resolvedApplicationId,
   }));
-  const [status, setStatus] = useState<"idle" | "loading" | "saving" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "saving" | "success" | "error"
+  >("idle");
   const [message, setMessage] = useState("");
   const [templates, setTemplates] = useState<ContractTemplate[]>([]);
   const [templatesStatus, setTemplatesStatus] = useState<
@@ -112,7 +114,8 @@ function NewContractPageContent() {
   const isFileContract = form.contractType === "FILE";
   const isTemplateContract = form.contractType === "TEMPLATE";
   const selectedTemplate =
-    templates.find((template) => String(template.id) === selectedTemplateId) ?? null;
+    templates.find((template) => String(template.id) === selectedTemplateId) ??
+    null;
   const currentFormKey = useMemo(() => JSON.stringify(form), [form]);
   const hasUnsavedChanges =
     hasDraftContract &&
@@ -128,7 +131,9 @@ function NewContractPageContent() {
       setTemplatesStatus("loading");
       setTemplatesMessage("");
 
-      const { data, error, response } = await client.GET("/api/v1/contracts/templates");
+      const { data, error, response } = await client.GET(
+        "/api/v1/contracts/templates",
+      );
 
       if (error || !response.ok) {
         setTemplatesStatus("error");
@@ -329,7 +334,11 @@ function NewContractPageContent() {
       return "사용 범위는 필수입니다.";
     }
 
-    if (isTemplateContract && templatesStatus === "success" && !selectedTemplateId) {
+    if (
+      isTemplateContract &&
+      templatesStatus === "success" &&
+      !selectedTemplateId
+    ) {
       return "계약서 템플릿을 선택해주십시오.";
     }
 
@@ -396,7 +405,8 @@ function NewContractPageContent() {
         throw new Error(getErrorMessage(error, "계약서 저장에 실패했습니다."));
       }
 
-      const savedContract = (data as { data?: { id?: number } } | undefined)?.data;
+      const savedContract = (data as { data?: { id?: number } } | undefined)
+        ?.data;
 
       if (!savedContract?.id) {
         throw new Error("계약서 저장은 성공했지만 계약 ID를 받지 못했습니다.");
@@ -490,7 +500,8 @@ function NewContractPageContent() {
                   />
                   {isUsingMockApplicationId ? (
                     <p className="text-[13px] leading-5 text-mute">
-                      개발 환경에서는 지원 ID가 없을 때 900001부터 목업 값이 자동으로 들어갑니다.
+                      개발 환경에서는 지원 ID가 없을 때 900001부터 목업 값이
+                      자동으로 들어갑니다.
                     </p>
                   ) : null}
                 </div>
@@ -510,14 +521,19 @@ function NewContractPageContent() {
 
               {isTemplateContract ? (
                 <>
-                  <Field label="계약서 템플릿" required className="md:col-span-2">
+                  <Field
+                    label="계약서 템플릿"
+                    required
+                    className="md:col-span-2"
+                  >
                     {templatesStatus === "loading" ? (
                       <div className="rounded-md border border-hairline bg-canvas-soft px-3 py-3 text-[14px] text-body">
                         템플릿 목록을 불러오는 중입니다.
                       </div>
                     ) : templatesStatus === "error" ? (
                       <div className="rounded-md bg-error-soft px-3 py-3 text-[14px] text-error">
-                        {templatesMessage || "템플릿 목록을 불러오지 못했습니다."}
+                        {templatesMessage ||
+                          "템플릿 목록을 불러오지 못했습니다."}
                       </div>
                     ) : templates.length === 0 ? (
                       <div className="rounded-md border border-hairline bg-canvas-soft px-3 py-3 text-[14px] text-body">
@@ -527,7 +543,9 @@ function NewContractPageContent() {
                       <select
                         className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                         value={selectedTemplateId}
-                        onChange={(event) => setSelectedTemplateId(event.target.value)}
+                        onChange={(event) =>
+                          setSelectedTemplateId(event.target.value)
+                        }
                       >
                         {templates.map((template) => (
                           <option key={template.id} value={template.id}>
@@ -537,7 +555,6 @@ function NewContractPageContent() {
                       </select>
                     )}
                   </Field>
-
                 </>
               ) : null}
 
@@ -547,7 +564,9 @@ function NewContractPageContent() {
                   type="date"
                   min={todayStr}
                   value={form.shootDate}
-                  onChange={(event) => updateField("shootDate", event.target.value)}
+                  onChange={(event) =>
+                    updateField("shootDate", event.target.value)
+                  }
                 />
               </Field>
 
@@ -579,7 +598,9 @@ function NewContractPageContent() {
                 <input
                   className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                   value={form.location}
-                  onChange={(event) => updateField("location", event.target.value)}
+                  onChange={(event) =>
+                    updateField("location", event.target.value)
+                  }
                 />
               </Field>
 
@@ -596,7 +617,11 @@ function NewContractPageContent() {
                       }`}
                       onClick={() => handlePayTypeChange(type)}
                     >
-                      {type === "CASH" ? "현금" : type === "SERVICE" ? "서비스" : "무료"}
+                      {type === "CASH"
+                        ? "현금"
+                        : type === "SERVICE"
+                          ? "서비스"
+                          : "무료"}
                     </button>
                   ))}
                 </div>
@@ -608,7 +633,9 @@ function NewContractPageContent() {
                   inputMode="numeric"
                   value={form.payType === "FREE" ? "0" : form.payment}
                   disabled={form.payType === "FREE"}
-                  onChange={(event) => updateField("payment", event.target.value)}
+                  onChange={(event) =>
+                    updateField("payment", event.target.value)
+                  }
                 />
               </Field>
 
@@ -616,7 +643,9 @@ function NewContractPageContent() {
                 <textarea
                   className="min-h-28 w-full resize-y rounded-md border border-hairline bg-canvas-soft px-3 py-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink"
                   value={form.usageScope}
-                  onChange={(event) => updateField("usageScope", event.target.value)}
+                  onChange={(event) =>
+                    updateField("usageScope", event.target.value)
+                  }
                 />
               </Field>
 
@@ -628,6 +657,25 @@ function NewContractPageContent() {
                 />
               </Field>
 
+              <Field
+                label="PDF URL"
+                required={isFileContract}
+                className="md:col-span-2"
+              >
+                <input
+                  className="h-11 w-full rounded-md border border-hairline bg-canvas-soft px-3 text-[15px] leading-6 text-ink outline-none transition focus:border-ink disabled:bg-canvas-soft disabled:text-mute"
+                  placeholder={
+                    isFileContract
+                      ? "FILE 계약은 PDF URL을 입력해야 합니다."
+                      : "템플릿 계약은 URL을 입력할 수 없습니다."
+                  }
+                  value={isTemplateContract ? "" : form.pdfUrl}
+                  disabled={isTemplateContract}
+                  onChange={(event) =>
+                    updateField("pdfUrl", event.target.value)
+                  }
+                />
+              </Field>
             </div>
           </section>
 
@@ -639,7 +687,11 @@ function NewContractPageContent() {
               <PreviewRow label="지원 ID" value={`#${form.applicationId}`} />
               <PreviewRow
                 label="계약 유형"
-                value={form.contractType === "TEMPLATE" ? "템플릿 작성" : "PDF 파일 첨부"}
+                value={
+                  form.contractType === "TEMPLATE"
+                    ? "템플릿 작성"
+                    : "PDF 파일 첨부"
+                }
               />
               <PreviewRow label="촬영 시작" value={preview.shootStartAt} mono />
               <PreviewRow label="촬영 종료" value={preview.shootEndAt} mono />
@@ -663,7 +715,11 @@ function NewContractPageContent() {
               {draftContractId ? (
                 <button
                   type="button"
-                  disabled={status === "saving" || status === "loading" || hasUnsavedChanges}
+                  disabled={
+                    status === "saving" ||
+                    status === "loading" ||
+                    hasUnsavedChanges
+                  }
                   onClick={handleContinue}
                   className="mt-3 h-11 w-full rounded-lg border border-black bg-white px-6 text-[15px] font-semibold leading-6 text-black transition hover:bg-black hover:text-white disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                 >
@@ -719,10 +775,13 @@ function getNextDevMockApplicationId() {
     return String(DEV_MOCK_APPLICATION_ID_START);
   }
 
-  const savedValue = window.localStorage.getItem(DEV_MOCK_APPLICATION_ID_STORAGE_KEY);
+  const savedValue = window.localStorage.getItem(
+    DEV_MOCK_APPLICATION_ID_STORAGE_KEY,
+  );
   const parsedValue = Number(savedValue);
   const nextValue =
-    Number.isInteger(parsedValue) && parsedValue >= DEV_MOCK_APPLICATION_ID_START
+    Number.isInteger(parsedValue) &&
+    parsedValue >= DEV_MOCK_APPLICATION_ID_START
       ? parsedValue + 1
       : DEV_MOCK_APPLICATION_ID_START;
 

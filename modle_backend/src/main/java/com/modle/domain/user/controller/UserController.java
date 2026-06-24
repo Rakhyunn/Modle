@@ -6,7 +6,9 @@ import com.modle.domain.user.dto.request.*;
 import com.modle.domain.user.dto.response.LoginResponse;
 import com.modle.domain.user.dto.response.PasswordResetResponse;
 import com.modle.domain.user.entity.User;
+import com.modle.domain.user.entity.type.UserStatus;
 import com.modle.domain.user.service.UserService;
+import com.modle.global.auth.OAuthCodeService;
 import com.modle.global.auth.SecurityUser;
 import com.modle.global.exception.CustomException;
 import com.modle.global.exception.ErrorCode;
@@ -28,6 +30,7 @@ public class UserController {
     private final UserService userService;
     private final Rq rq;
     private final EmailVerifyService emailVerifyService;
+    private final OAuthCodeService oAuthCodeService;
 
     @Operation(summary = "모델 회원가입", description = "모델 회원으로 가입합니다.")
     @PostMapping("/signup/model")
@@ -86,6 +89,45 @@ public class UserController {
         rq.setCookie("accessToken", accessToken, 60 * 30);
 
         // Refresh Token — 7일
+        String refreshToken = userService.genRefreshToken(user);
+        rq.setCookie("refreshToken", refreshToken);
+
+        return new ApiResponse<LoginResponse>(
+                "200-1",
+                "로그인 성공",
+                new LoginResponse(new UserDto(user))
+        );
+    }
+
+    // 소셜 로그인 성공 후, 프론트가 전달받은 1회용 코드를 토큰으로 교환한다.
+    // 이 응답에서 인증 쿠키가 설정되며, 프론트엔드 same-origin 프록시를 통과하므로
+    // 프론트엔드 도메인의 first-party 쿠키로 저장된다.
+    @Operation(summary = "소셜 로그인 코드 교환", description = "소셜 로그인 성공 후 발급된 1회용 코드를 인증 토큰으로 교환하고 인증 쿠키를 설정합니다. 추가 정보 미입력(INCOMPLETE) 시 임시 토큰만 발급됩니다.")
+    @PostMapping("/oauth/exchange")
+    public ApiResponse<LoginResponse> oauthExchange(
+            @Valid @RequestBody OAuthExchangeRequest request
+    ) {
+        Long userId = oAuthCodeService.consume(request.code());
+        if (userId == null) {
+            throw new CustomException(ErrorCode.INVALID_OAUTH_CODE);
+        }
+
+        User user = userService.findById(userId);
+
+        // 추가 정보 미입력(INCOMPLETE) → 추가정보 입력 페이지에서 인증용으로 쓸 임시 accessToken만 발급
+        if (user.getStatus() == UserStatus.INCOMPLETE) {
+            String tempToken = userService.genAccessToken(user);
+            rq.setCookie("accessToken", tempToken, 60 * 30);
+            return new ApiResponse<LoginResponse>(
+                    "200-1",
+                    "추가 정보 입력이 필요합니다.",
+                    new LoginResponse(new UserDto(user))
+            );
+        }
+
+        // ACTIVE → Access Token(30분) + Refresh Token(7일) 발급
+        String accessToken = userService.genAccessToken(user);
+        rq.setCookie("accessToken", accessToken, 60 * 30);
         String refreshToken = userService.genRefreshToken(user);
         rq.setCookie("refreshToken", refreshToken);
 

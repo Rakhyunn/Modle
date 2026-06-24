@@ -2,11 +2,9 @@ package com.modle.global.auth;
 
 import com.modle.domain.user.entity.User;
 import com.modle.domain.user.entity.type.UserStatus;
-import com.modle.domain.user.service.AuthTokenService;
-import com.modle.global.rq.Rq;
+import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -19,8 +17,7 @@ import java.nio.charset.StandardCharsets;
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-    private final AuthTokenService authTokenService;
-    private final Rq rq;
+    private final OAuthCodeService oAuthCodeService;
 
     @Value("${app.frontend.base-url}")
     private String frontendBaseUrl;
@@ -35,17 +32,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuth2SecurityUser oAuth2SecurityUser = (OAuth2SecurityUser) authentication.getPrincipal();
         User user = oAuth2SecurityUser.getUser();
 
-        // 신규 유저 (추가 정보 미입력) → 추가 정보 입력 페이지로 redirect
-        if (user.getStatus() == UserStatus.INCOMPLETE) {
-            // 임시 토큰 발급 (추가 정보 입력 페이지에서 인증용)
-            String tempToken = authTokenService.genAccessToken(user);
-            rq.setCookie("accessToken", tempToken, 60 * 30);
-            response.sendRedirect(frontendBaseUrl + "/signup/additional");
-            return;
-        }
-
-        // status 검증
-        if (user.getStatus() != UserStatus.ACTIVE) {
+        // 로그인 불가 상태(승인 대기/반려/정지/탈퇴 등)는 프론트 로그인 페이지로 에러 전달
+        if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.INCOMPLETE) {
             String message = URLEncoder.encode(
                     switch (user.getStatus()) {
                         case PENDING -> "승인 대기 중인 계정입니다.";
@@ -59,12 +47,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             return;
         }
 
-        // 기존 유저 → JWT 발급 후 메인으로 redirect
-        String accessToken = authTokenService.genAccessToken(user);
-        String refreshToken = authTokenService.genRefreshToken(user);
-        rq.setCookie("accessToken", accessToken, 60 * 30);
-        rq.setCookie("refreshToken", refreshToken);
-
-        response.sendRedirect(frontendBaseUrl);
+        // ACTIVE(기존 유저) / INCOMPLETE(추가 정보 미입력 신규 유저) 모두
+        // 토큰 쿠키는 여기서 심지 않고, 1회용 코드만 발급해 프론트 콜백 페이지로 넘긴다.
+        // 실제 토큰 쿠키는 프론트가 호출하는 /api/v1/auth/oauth/exchange 응답에서 발급되어
+        // 프론트엔드 도메인의 first-party 쿠키로 저장된다.
+        String code = oAuthCodeService.issue(user.getId());
+        response.sendRedirect(frontendBaseUrl + "/oauth/callback?code=" + code);
     }
 }

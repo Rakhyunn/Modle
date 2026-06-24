@@ -1,27 +1,45 @@
 package com.modle.infra.mail;
 
-import lombok.RequiredArgsConstructor;
+import com.sendgrid.*;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class MailService {
-    private final JavaMailSender mailSender;
+    @Value("${sendgrid.api-key}")
+    private String apiKey;
+
+    @Value("${mail.from}")
+    private String fromEmail;
 
     // 이메일 발송 공통 메서드
     public void send(String to, String subject, String text) {
+        Email from = new Email(fromEmail);
+        Email toEmail = new Email(to);
+        Content content = new Content("text/plain", text);
+        Mail mail = new Mail(from, subject, toEmail, content);
+
+        SendGrid sg = new SendGrid(apiKey);
+        Request request = new Request();
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(text);
-            mailSender.send(message);
-        } catch (Exception e) {
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            Response response = sg.api(request);
+
+            if (response.getStatusCode() >= 400) {
+                log.error("이메일 발송 실패 - to: {}, status: {}, body: {}",
+                        to, response.getStatusCode(), response.getBody());
+            }
+        } catch (IOException e) {
             log.error("이메일 발송 실패 - to: {}, error: {}", to, e.getMessage());
         }
     }
