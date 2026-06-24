@@ -102,6 +102,7 @@ public class UserController {
     // 소셜 로그인 성공 후, 프론트가 전달받은 1회용 코드를 토큰으로 교환한다.
     // 이 응답에서 인증 쿠키가 설정되며, 프론트엔드 same-origin 프록시를 통과하므로
     // 프론트엔드 도메인의 first-party 쿠키로 저장된다.
+    @Operation(summary = "소셜 로그인 코드 교환", description = "소셜 로그인 성공 후 발급된 1회용 코드를 인증 토큰으로 교환하고 인증 쿠키를 설정합니다. 추가 정보 미입력(INCOMPLETE) 시 임시 토큰만 발급됩니다.")
     @PostMapping("/oauth/exchange")
     public ApiResponse<LoginResponse> oauthExchange(
             @Valid @RequestBody OAuthExchangeRequest request
