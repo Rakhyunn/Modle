@@ -202,7 +202,7 @@ AI 추천 기반으로 연결하고, 지원·계약·리뷰까지 한 곳에서 
 
 전체 API는 **Swagger UI**로 자동 문서화되어 있습니다. 백엔드 실행 후 아래 주소에서 요청/응답 스키마와 함께 직접 테스트할 수 있습니다.
 
-> 🔗 **Swagger UI** : `http://modle-production.up.railway.app/swagger-ui/index.html`
+> 🔗 [**Swagger UI**](http://modle-production.up.railway.app/swagger-ui/index.html)
 
 - 모든 엔드포인트는 `/api/v1` 하위에 위치합니다.
 - 인증이 필요한 API는 **JWT 토큰(쿠키)** 기반으로 동작합니다.
