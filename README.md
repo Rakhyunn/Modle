@@ -10,7 +10,7 @@
 광고·화보·행사 등 다양한 촬영에 필요한 모델과 이를 찾는 클라이언트를
 AI 추천 기반으로 연결하고, 지원·계약·리뷰까지 한 곳에서 처리하는 매칭 서비스입니다.
 
-[🔗 서비스 바로가기](https://modle-eta.vercel.app) · [📹 데모 영상](https://example.com)
+[🔗 서비스 바로가기](https://modle-eta.vercel.app) · [📹 데모 영상](https://drive.google.com/file/d/1_EtW_RT1hyAE6_fkIGSAZIzuWU0LkFiw/view?usp=sharing)
 
 </div>
 
