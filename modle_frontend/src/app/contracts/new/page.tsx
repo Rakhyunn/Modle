@@ -516,7 +516,6 @@ function NewContractPageContent() {
                   }
                 >
                   <option value="TEMPLATE">템플릿 작성</option>
-                  <option value="FILE">PDF 파일 첨부</option>
                 </select>
               </Field>
 
@@ -556,20 +555,6 @@ function NewContractPageContent() {
                       </select>
                     )}
                   </Field>
-
-                  {selectedTemplate ? (
-                    <div className="md:col-span-2 rounded-xl border border-hairline bg-canvas-soft p-4">
-                      <p className="text-[13px] font-semibold text-mute">
-                        선택한 템플릿
-                      </p>
-                      <h3 className="mt-2 text-[17px] font-semibold text-ink">
-                        {selectedTemplate.title}
-                      </h3>
-                      <pre className="mt-3 whitespace-pre-wrap break-words text-[14px] leading-6 text-body">
-                        {renderedTemplateContent}
-                      </pre>
-                    </div>
-                  ) : null}
                 </>
               ) : null}
 

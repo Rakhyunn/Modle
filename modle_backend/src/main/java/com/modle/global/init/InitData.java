@@ -54,7 +54,6 @@ public class InitData {
         private final ClientRepository clientRepository;
         private final BCryptPasswordEncoder passwordEncoder;
         private final ModelService modelService;
-        private final ContractTemplateRepository contractTemplateRepository;
         private final JobPostingRepository jobPostingRepository;
         private final ApplicationRepository applicationRepository;
         private final CareerRepository careerRepository;
@@ -220,29 +219,10 @@ public class InitData {
                 clientRepository.save(client3);
         }
 
-        @Transactional
-        public void work6() {
-                if (contractTemplateRepository.count() > 0)
-                        return;
-
-                ContractTemplate template = ContractTemplate.create(
-                                "기본 촬영 계약서",
-                                """
-                                                촬영 시작: {{shoot_start_at}}
-                                                촬영 종료: {{shoot_end_at}}
-                                                촬영 장소: {{location}}
-                                                보수 금액: {{payment}}
-                                                보수 방식: {{pay_type}}
-                                                사용 범위: {{usage_scope}}
-                                                기타 메모: {{memo}}
-                                                """);
-
-                contractTemplateRepository.save(template);
-        }
 
         // 테스트 공고 데이터 생성
         @Transactional
-        public void work7() {
+        public void work6() {
                 if (jobPostingRepository.count() > 0)
                         return;
 
