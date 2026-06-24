@@ -10,7 +10,7 @@
 광고·화보·행사 등 다양한 촬영에 필요한 모델과 이를 찾는 클라이언트를
 AI 추천 기반으로 연결하고, 지원·계약·리뷰까지 한 곳에서 처리하는 매칭 서비스입니다.
 
-[🔗 서비스 바로가기](https://modle-eta.vercel.app) · [📹 데모 영상](https://example.com)
+[🔗 서비스 바로가기](https://modle-eta.vercel.app) · [📹 데모 영상](https://drive.google.com/file/d/1_EtW_RT1hyAE6_fkIGSAZIzuWU0LkFiw/view?usp=sharing)
 
 </div>
 
@@ -52,7 +52,7 @@ AI 추천 기반으로 연결하고, 지원·계약·리뷰까지 한 곳에서 
 
 ## 👥 멤버 소개
 
-| **김락현** | **김영욱** | **신재희** | **임현호** | **최정우** |
+| **김락현(팀장)** | **김영욱** | **신재희** | **임현호** | **최정우** |
 |---------|---------|---------|---------|---------|
 | [@Rakhyunn](https://github.com/Rakhyunn) | [@wooki0123](https://github.com/wooki0123) | [@SHINJAEHEE-DEV](https://github.com/SHINJAEHEE-DEV) | [@predevho](https://github.com/predevho) | [@woo0218](https://github.com/woo0218) |
 
@@ -202,7 +202,7 @@ AI 추천 기반으로 연결하고, 지원·계약·리뷰까지 한 곳에서 
 
 전체 API는 **Swagger UI**로 자동 문서화되어 있습니다. 백엔드 실행 후 아래 주소에서 요청/응답 스키마와 함께 직접 테스트할 수 있습니다.
 
-> 🔗 **Swagger UI** : `http://modle-production.up.railway.app/swagger-ui/index.html`
+> 🔗 [**Swagger UI**](http://modle-production.up.railway.app/swagger-ui/index.html)
 
 - 모든 엔드포인트는 `/api/v1` 하위에 위치합니다.
 - 인증이 필요한 API는 **JWT 토큰(쿠키)** 기반으로 동작합니다.
