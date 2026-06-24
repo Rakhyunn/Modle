@@ -146,5 +146,3 @@ public class JobPosting extends BaseEntity {
         this.status = JobPostingStatus.CLOSED;
     }
 }
-
-
