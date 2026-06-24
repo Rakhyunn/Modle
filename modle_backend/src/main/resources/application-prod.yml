@@ -5,6 +5,12 @@ spring:
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
 
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
 cookie:
   secure: true
   # 프론트엔드가 Next.js BFF 프록시(rewrite)를 통해 백엔드를 호출하므로, 인증 쿠키는
@@ -14,13 +20,6 @@ cookie:
   domain: ${COOKIE_DOMAIN:}
   # first-party이므로 cross-site용 None 대신 Lax 사용(동일 출처 요청에서 정상 전송, CSRF 방어 강화).
   same-site: Lax
-
-spring:
-  jpa:
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: false
 
 logging:
   level:

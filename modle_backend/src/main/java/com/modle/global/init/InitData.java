@@ -69,7 +69,6 @@ public class InitData {
                         self.work6(); // 계약서 템플릿
                         self.work8(); // 추천 테스트용 모델 500개
                         self.work9(); // 시연용 연예인 모델 10명
-                        self.work7(); // 테스트 공고
                         self.work10(); // 시연용 공고 상태/지원 시나리오
                 };
         }
